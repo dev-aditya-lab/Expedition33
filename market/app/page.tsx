@@ -2,15 +2,6 @@
 
 import { useState } from "react";
 
-interface PlanItem {
-  task: string;
-}
-
-interface AgentData {
-  plan: PlanItem[];
-  result: string[];
-}
-
 export default function HomePage() {
   const [businessName, setBusinessName] = useState("");
   const [productDesc, setProductDesc] = useState("");
@@ -18,11 +9,11 @@ export default function HomePage() {
   const [goal, setGoal] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<AgentData | null>(null);
+  const [data, setData] = useState<any>(null);
 
   const runAgent = async () => {
     if (!businessName || !productDesc || !targetAudience || !goal) {
-      alert("Please fill all fields");
+      alert("Please fill all details");
       return;
     }
 
@@ -46,73 +37,94 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full">
-        <h1 className="text-2xl font-bold mb-1">AI Growth Marketing Agent</h1>
-        <p className="text-gray-600 mb-6">
-          Provide your business details. The AI agent will handle SEO, social
-          media, email & WhatsApp marketing.
+    <main className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-6">
+      <div className="max-w-5xl mx-auto">
+
+        {/* Header */}
+        <h1 className="text-3xl font-bold mb-2">
+          AI Growth Marketing Agent
+        </h1>
+        <p className="text-gray-600 mb-8">
+          An AI agent that understands your business and runs SEO, social media,
+          email & WhatsApp marketing automatically.
         </p>
 
-        {/* Business Name */}
-        <input
-          type="text"
-          placeholder="Business Name"
-          value={businessName}
-          onChange={(e) => setBusinessName(e.target.value)}
-          className="w-full border rounded-md px-4 py-2 mb-3"
-        />
+        <div className="grid md:grid-cols-2 gap-6">
 
-        {/* Product Description */}
-        <textarea
-          placeholder="Product / Service Description"
-          value={productDesc}
-          onChange={(e) => setProductDesc(e.target.value)}
-          className="w-full border rounded-md px-4 py-2 mb-3"
-          rows={3}
-        />
+          {/* LEFT: Input Form */}
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h2 className="font-semibold text-lg mb-4">Business Details</h2>
 
-        {/* Target Audience */}
-        <input
-          type="text"
-          placeholder="Target Audience (e.g. small business owners in India)"
-          value={targetAudience}
-          onChange={(e) => setTargetAudience(e.target.value)}
-          className="w-full border rounded-md px-4 py-2 mb-3"
-        />
+            <input
+              className="w-full border rounded-md px-4 py-2 mb-3"
+              placeholder="Business Name"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+            />
 
-        {/* Goal */}
-        <input
-          type="text"
-          placeholder="Goal (e.g. increase leads, traffic, sales)"
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          className="w-full border rounded-md px-4 py-2 mb-4"
-        />
+            <textarea
+              className="w-full border rounded-md px-4 py-2 mb-3"
+              rows={3}
+              placeholder="Product / Service Description"
+              value={productDesc}
+              onChange={(e) => setProductDesc(e.target.value)}
+            />
 
-        {/* Button */}
-        <button
-          onClick={runAgent}
-          disabled={loading}
-          className="w-full bg-black text-white py-2 rounded-md hover:opacity-90"
-        >
-          {loading ? "AI Agent is working..." : "Run AI Agent"}
-        </button>
+            <input
+              className="w-full border rounded-md px-4 py-2 mb-3"
+              placeholder="Target Audience"
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+            />
 
-        {/* Agent Output */}
+            <input
+              className="w-full border rounded-md px-4 py-2 mb-4"
+              placeholder="Goal (what do you want to achieve?)"
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+            />
+
+            <button
+              onClick={runAgent}
+              disabled={loading}
+              className="w-full bg-black text-white py-2 rounded-md"
+            >
+              {loading ? "AI Agent is working..." : "Run AI Agent"}
+            </button>
+          </div>
+
+          {/* RIGHT: Business Summary */}
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h2 className="font-semibold text-lg mb-4">
+              Business Summary (AI Context)
+            </h2>
+
+            <p><b>🏢 Business:</b> {businessName || "-"}</p>
+            <p className="mt-2"><b>📦 Product:</b> {productDesc || "-"}</p>
+            <p className="mt-2"><b>🎯 Audience:</b> {targetAudience || "-"}</p>
+            <p className="mt-2"><b>🚀 Goal:</b> {goal || "-"}</p>
+
+            <p className="text-sm text-gray-500 mt-4">
+              This information is used by the AI agent to plan and execute
+              marketing tasks autonomously.
+            </p>
+          </div>
+        </div>
+
+        {/* AI Output */}
         {data && (
-          <div className="mt-6">
-            <h2 className="font-semibold mb-2">🧠 Agent Plan</h2>
-            <ul className="list-disc ml-5 text-sm mb-4">
-              {data.plan.map((item: PlanItem, index: number) => (
-                <li key={index}>{item.task}</li>
+          <div className="bg-white p-6 rounded-xl shadow mt-6">
+            <h2 className="font-semibold text-lg mb-3">🧠 AI Agent Plan</h2>
+            <ul className="list-disc ml-5 mb-4">
+              {data.plan.map((p: any, i: number) => (
+                <li key={i}>{p.task}</li>
               ))}
             </ul>
 
-            <h2 className="font-semibold mb-2">⚙️ Execution Result</h2>
-            <ul className="list-disc ml-5 text-sm text-green-700">
-              {data.result.map((item: string, index: number) => (
-                <li key={index}>{item}</li>
+            <h2 className="font-semibold text-lg mb-2">⚙️ Execution Result</h2>
+            <ul className="list-disc ml-5 text-green-700">
+              {data.result.map((r: string, i: number) => (
+                <li key={i}>{r}</li>
               ))}
             </ul>
           </div>
