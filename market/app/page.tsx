@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+interface PlanItem {
+  task: string;
+}
+
+interface AgentData {
+  plan: PlanItem[];
+  result: string[];
+}
+
 export default function HomePage() {
   const [businessName, setBusinessName] = useState("");
   const [productDesc, setProductDesc] = useState("");
@@ -9,7 +18,7 @@ export default function HomePage() {
   const [goal, setGoal] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AgentData | null>(null);
 
   const runAgent = async () => {
     if (!businessName || !productDesc || !targetAudience || !goal) {
@@ -39,10 +48,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full">
-
-        <h1 className="text-2xl font-bold mb-1">
-          AI Growth Marketing Agent
-        </h1>
+        <h1 className="text-2xl font-bold mb-1">AI Growth Marketing Agent</h1>
         <p className="text-gray-600 mb-6">
           Provide your business details. The AI agent will handle SEO, social
           media, email & WhatsApp marketing.
@@ -98,7 +104,7 @@ export default function HomePage() {
           <div className="mt-6">
             <h2 className="font-semibold mb-2">🧠 Agent Plan</h2>
             <ul className="list-disc ml-5 text-sm mb-4">
-              {data.plan.map((item: any, index: number) => (
+              {data.plan.map((item: PlanItem, index: number) => (
                 <li key={index}>{item.task}</li>
               ))}
             </ul>
