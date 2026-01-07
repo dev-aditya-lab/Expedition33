@@ -3,13 +3,17 @@
 import { useState } from "react";
 
 export default function HomePage() {
+  const [businessName, setBusinessName] = useState("");
+  const [productDesc, setProductDesc] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
   const [goal, setGoal] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
 
   const runAgent = async () => {
-    if (!goal) {
-      alert("Please enter a business goal");
+    if (!businessName || !productDesc || !targetAudience || !goal) {
+      alert("Please fill all fields");
       return;
     }
 
@@ -19,7 +23,12 @@ export default function HomePage() {
     const res = await fetch("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ goal }),
+      body: JSON.stringify({
+        businessName,
+        productDesc,
+        targetAudience,
+        goal,
+      }),
     });
 
     const result = await res.json();
@@ -31,21 +40,48 @@ export default function HomePage() {
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full">
 
-        <h1 className="text-2xl font-bold mb-2">
+        <h1 className="text-2xl font-bold mb-1">
           AI Growth Marketing Agent
         </h1>
         <p className="text-gray-600 mb-6">
-          Enter your business goal. The AI agent will plan and execute SEO,
-          social media, email, and WhatsApp marketing automatically.
+          Provide your business details. The AI agent will handle SEO, social
+          media, email & WhatsApp marketing.
         </p>
 
-        {/* Goal Input */}
+        {/* Business Name */}
         <input
           type="text"
-          placeholder="e.g. Increase website traffic and leads"
+          placeholder="Business Name"
+          value={businessName}
+          onChange={(e) => setBusinessName(e.target.value)}
+          className="w-full border rounded-md px-4 py-2 mb-3"
+        />
+
+        {/* Product Description */}
+        <textarea
+          placeholder="Product / Service Description"
+          value={productDesc}
+          onChange={(e) => setProductDesc(e.target.value)}
+          className="w-full border rounded-md px-4 py-2 mb-3"
+          rows={3}
+        />
+
+        {/* Target Audience */}
+        <input
+          type="text"
+          placeholder="Target Audience (e.g. small business owners in India)"
+          value={targetAudience}
+          onChange={(e) => setTargetAudience(e.target.value)}
+          className="w-full border rounded-md px-4 py-2 mb-3"
+        />
+
+        {/* Goal */}
+        <input
+          type="text"
+          placeholder="Goal (e.g. increase leads, traffic, sales)"
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
-          className="w-full border border-gray-300 rounded-md px-4 py-2 mb-4"
+          className="w-full border rounded-md px-4 py-2 mb-4"
         />
 
         {/* Button */}
@@ -57,7 +93,7 @@ export default function HomePage() {
           {loading ? "AI Agent is working..." : "Run AI Agent"}
         </button>
 
-        {/* Output */}
+        {/* Agent Output */}
         {data && (
           <div className="mt-6">
             <h2 className="font-semibold mb-2">🧠 Agent Plan</h2>
