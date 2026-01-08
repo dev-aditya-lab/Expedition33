@@ -129,6 +129,10 @@ export default function SocialPage() {
                 generateImage: generateImage,
                 manualSchedule: manualSchedule
             });
+            
+            console.log('API Response:', result);
+            console.log('Image URL from API:', result.image_url);
+            
             setGeneratedContent(result.content);
             
             // Parse Instagram content
@@ -136,10 +140,16 @@ export default function SocialPage() {
             setInstagramCaption(parsed.caption);
             setInstagramHashtags(parsed.hashtags);
             
+            // Set image URL - check both possible field names
             if (result.image_url) {
+                console.log('Setting image URL:', result.image_url);
                 setGeneratedImageUrl(result.image_url);
+            } else if (result.imageUrl) {
+                console.log('Setting imageUrl:', result.imageUrl);
+                setGeneratedImageUrl(result.imageUrl);
             }
         } catch (error) {
+            console.error('Error:', error);
             alert('Error generating social content: ' + error.message);
         } finally {
             setGenerating(false);
@@ -248,8 +258,13 @@ export default function SocialPage() {
                     {/* Generated Content Display */}
                     {generatedContent && (
                         <div className="mt-6">
-                            {/* Instagram Preview */}
-                            {generatedImageUrl && (
+                            {/* Debug Info */}
+                            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs">
+                                <p className="text-amber-400 m-0">🔍 Debug: Image URL = {generatedImageUrl || 'null'}</p>
+                            </div>
+                            
+                            {/* Instagram Preview - Show always if image exists */}
+                            {generatedImageUrl ? (
                                 <div className="mb-6">
                                     <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                                         📱 Instagram Post Preview
@@ -312,13 +327,17 @@ export default function SocialPage() {
                                                             {instagramHashtags.slice(0, 100)}{instagramHashtags.length > 100 ? '...' : ''}
                                                         </p>
                                                     )}
-                                                    
+                                                   
                                                     {/* Time */}
                                                     <p className="text-[11px] text-gray-400 mt-2 uppercase">Just now</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            ) : (
+                                <div className="mb-4 p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+                                    <p className="text-sm text-cyan-400 m-0">⚠️ No image generated. Make sure "Generate AI image" is checked before generating.</p>
                                 </div>
                             )}
 

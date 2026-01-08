@@ -27,8 +27,8 @@ def generate_marketing_image(
     """
     try:
         # Create a marketing-focused prompt
-        # prompt = f"""stunning marketing image for {business_name}, {product_description}, {style}, clean professional design, vibrant colors, modern aesthetic, social media ready, no text"""
-        prompt = f"""image of a model wearing headphones"""
+        prompt = f"""stunning marketing image for {business_name}, {product_description}, {style}, clean professional design, vibrant colors, modern aesthetic, social media ready, no text"""
+        
         
         # URL encode the prompt
         encoded_prompt = urllib.parse.quote(prompt)
