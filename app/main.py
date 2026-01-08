@@ -616,6 +616,65 @@ async def change_post_status(post_id: str, new_status: str):
 
 
 # ============================================
+# Google Calendar Endpoints
+# ============================================
+
+@app.post("/calendar/event", tags=["Google Calendar"])
+async def create_calendar_event_endpoint(
+    title: str,
+    description: str,
+    scheduled_time: str,
+    platform: str = "Social Media"
+):
+    """
+    Create a Google Calendar event manually.
+    
+    - **title**: Event title
+    - **description**: Event description/content
+    - **scheduled_time**: ISO format datetime (e.g., "2026-01-08T10:00:00")
+    - **platform**: Platform name (Instagram, LinkedIn, etc.)
+    
+    Requires `service_account.json` file in project root.
+    """
+    from app.integrations.google_calendar import create_calendar_event
+    from datetime import datetime
+    
+    try:
+        start_time = datetime.fromisoformat(scheduled_time)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid datetime format. Use ISO format: YYYY-MM-DDTHH:MM:SS")
+    
+    result = create_calendar_event(
+        title=title,
+        description=description,
+        start_time=start_time,
+        platform=platform
+    )
+    
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
+
+
+@app.get("/calendar/status", tags=["Google Calendar"])
+async def check_calendar_status():
+    """
+    Check if Google Calendar integration is configured.
+    """
+    import os
+    from app.integrations.google_calendar import CREDENTIALS_FILE
+    
+    configured = os.path.exists(CREDENTIALS_FILE)
+    
+    return {
+        "configured": configured,
+        "credentials_file": CREDENTIALS_FILE,
+        "message": "Google Calendar is ready" if configured else "Add service_account.json to enable Google Calendar"
+    }
+
+
+# ============================================
 # Lead Management Endpoints
 # ============================================
 

@@ -472,13 +472,45 @@ async def record_engagement(post_id: str, engagement_score: int) -> bool:
 async def auto_schedule_post(post_id: str) -> Optional[datetime]:
     """
     Automatically schedule a post at the optimal time.
+    Also creates a Google Calendar event for the scheduled time.
     Returns the scheduled datetime.
     """
+    from app.integrations.google_calendar import create_calendar_event
+    
     optimal_time = await get_next_available_slot()
     
     success = await update_post_schedule(post_id, optimal_time)
     
     if success:
+        # Get post details for calendar event
+        db = get_database()
+        try:
+            post = await db.social_posts.find_one({"_id": ObjectId(post_id)})
+            if post:
+                # Create Google Calendar event
+                calendar_result = create_calendar_event(
+                    title=f"{post.get('platform', 'Social')} Post - {post.get('business_name', 'Marketing')}",
+                    description=post.get('content', 'Scheduled social media post'),
+                    start_time=optimal_time,
+                    platform=post.get('platform', 'Social Media'),
+                    image_url=post.get('image_url')
+                )
+                
+                # Store calendar event ID in the post document
+                if calendar_result.get("success") and calendar_result.get("event_id"):
+                    await db.social_posts.update_one(
+                        {"_id": ObjectId(post_id)},
+                        {"$set": {
+                            "calendar_event_id": calendar_result.get("event_id"),
+                            "calendar_event_link": calendar_result.get("event_link")
+                        }}
+                    )
+                    print(f"[Calendar] Event created: {calendar_result.get('event_link')}")
+                else:
+                    print(f"[Calendar] Skipped: {calendar_result.get('message')}")
+        except Exception as e:
+            print(f"[Calendar] Error creating event: {e}")
+        
         return optimal_time
     return None
 

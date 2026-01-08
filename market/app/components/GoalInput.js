@@ -1,18 +1,41 @@
 'use client';
 
 import { useState } from 'react';
-import { Target, Rocket, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Target, Rocket, Loader2, CheckCircle, XCircle, Mail, Share2, Search, Zap } from 'lucide-react';
 import { generateAllMarketing } from '../api';
+
+const API_URL = 'http://localhost:8000';
 
 export default function GoalInput({ onSubmit, onResult }) {
     const [goal, setGoal] = useState('');
     const [businessName, setBusinessName] = useState('');
     const [productDescription, setProductDescription] = useState('');
     const [targetAudience, setTargetAudience] = useState('');
+    const [websiteUrl, setWebsiteUrl] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [actionProgress, setActionProgress] = useState([]);
+
+    // Action toggles
+    const [sendEmails, setSendEmails] = useState(true);
+    const [createSocialPosts, setCreateSocialPosts] = useState(true);
+    const [analyzeWebsite, setAnalyzeWebsite] = useState(false);
+
+    const addProgress = (message, status = 'running') => {
+        setActionProgress(prev => [...prev, { message, status, time: new Date().toLocaleTimeString() }]);
+    };
+
+    const updateLastProgress = (status) => {
+        setActionProgress(prev => {
+            const updated = [...prev];
+            if (updated.length > 0) {
+                updated[updated.length - 1].status = status;
+            }
+            return updated;
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -21,24 +44,104 @@ export default function GoalInput({ onSubmit, onResult }) {
         setIsProcessing(true);
         setError(null);
         setResult(null);
+        setActionProgress([]);
 
         try {
-            // Use goal as product description if not specified
-            const data = {
+            const businessContext = {
                 businessName: businessName || 'My Business',
                 productDescription: productDescription || goal,
                 targetAudience: targetAudience || 'General audience',
                 goal: goal
             };
 
-            const response = await generateAllMarketing(data);
-            setResult(response);
+            // Step 1: Generate marketing content
+            addProgress('🚀 Generating marketing content with AI...');
+            const response = await generateAllMarketing(businessContext);
+            updateLastProgress('done');
+            
+            let fullResult = { ...response };
+
+            // Step 2: Send emails to leads if enabled
+            if (sendEmails) {
+                addProgress('📧 Sending AI-personalized emails to leads...');
+                try {
+                    const emailResponse = await fetch(
+                        `${API_URL}/leads/ai-email-campaign?max_emails=10&dry_run=false&business_context=${encodeURIComponent(`${businessContext.businessName}: ${businessContext.productDescription}`)}`,
+                        { method: 'POST' }
+                    );
+                    if (emailResponse.ok) {
+                        const emailData = await emailResponse.json();
+                        fullResult.emailCampaign = emailData;
+                        updateLastProgress('done');
+                    } else {
+                        updateLastProgress('failed');
+                    }
+                } catch (err) {
+                    console.error('Email error:', err);
+                    updateLastProgress('failed');
+                }
+            }
+
+            // Step 3: Create and schedule social posts if enabled
+            if (createSocialPosts) {
+                addProgress('📱 Creating and scheduling social posts...');
+                try {
+                    const socialResponse = await fetch(`${API_URL}/generate/social`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            business_name: businessContext.businessName,
+                            product_description: businessContext.productDescription,
+                            target_audience: businessContext.targetAudience,
+                            platform: 'instagram',
+                            generate_image: true,
+                            manual_schedule: false // Auto-schedule
+                        })
+                    });
+                    if (socialResponse.ok) {
+                        const socialData = await socialResponse.json();
+                        fullResult.socialPost = socialData;
+                        updateLastProgress('done');
+                    } else {
+                        updateLastProgress('failed');
+                    }
+                } catch (err) {
+                    console.error('Social error:', err);
+                    updateLastProgress('failed');
+                }
+            }
+
+            // Step 4: Analyze website if URL provided and enabled
+            if (analyzeWebsite && websiteUrl) {
+                addProgress('🔍 Analyzing website for SEO...');
+                try {
+                    const seoResponse = await fetch(`${API_URL}/analyze/website`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ website_url: websiteUrl })
+                    });
+                    if (seoResponse.ok) {
+                        const seoData = await seoResponse.json();
+                        fullResult.websiteAnalysis = seoData;
+                        updateLastProgress('done');
+                    } else {
+                        updateLastProgress('failed');
+                    }
+                } catch (err) {
+                    console.error('SEO error:', err);
+                    updateLastProgress('failed');
+                }
+            }
+
+            addProgress('✅ All actions completed!', 'done');
+            setResult(fullResult);
             
             if (onSubmit) onSubmit(goal);
-            if (onResult) onResult(response);
+            if (onResult) onResult(fullResult);
             
         } catch (err) {
             setError(err.message);
+            updateLastProgress('failed');
         } finally {
             setIsProcessing(false);
         }
@@ -58,7 +161,7 @@ export default function GoalInput({ onSubmit, onResult }) {
                 </div>
                 <div>
                     <h2 className="text-lg sm:text-xl font-bold text-white m-0">Set Your Business Goal</h2>
-                    <p className="text-xs sm:text-sm text-gray-400 m-0">AI agent will generate marketing content for you</p>
+                    <p className="text-xs sm:text-sm text-gray-400 m-0">AI agent will generate content and execute actions</p>
                 </div>
             </div>
 
@@ -81,7 +184,7 @@ export default function GoalInput({ onSubmit, onResult }) {
                         {isProcessing ? (
                             <>
                                 <Loader2 size={18} className="animate-spin" />
-                                <span>Generating...</span>
+                                <span>Processing...</span>
                             </>
                         ) : (
                             <>
@@ -91,6 +194,60 @@ export default function GoalInput({ onSubmit, onResult }) {
                         )}
                     </button>
                 </div>
+
+                {/* Action Toggles */}
+                <div className="flex flex-wrap items-center gap-4 mb-4 p-3 bg-white/5 rounded-xl">
+                    <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Actions:
+                    </span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={sendEmails}
+                            onChange={(e) => setSendEmails(e.target.checked)}
+                            className="w-4 h-4 rounded accent-violet-500"
+                            disabled={isProcessing}
+                        />
+                        <Mail className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs text-gray-300">Send Emails</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={createSocialPosts}
+                            onChange={(e) => setCreateSocialPosts(e.target.checked)}
+                            className="w-4 h-4 rounded accent-violet-500"
+                            disabled={isProcessing}
+                        />
+                        <Share2 className="w-4 h-4 text-pink-400" />
+                        <span className="text-xs text-gray-300">Create Social Posts</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={analyzeWebsite}
+                            onChange={(e) => setAnalyzeWebsite(e.target.checked)}
+                            className="w-4 h-4 rounded accent-violet-500"
+                            disabled={isProcessing}
+                        />
+                        <Search className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs text-gray-300">SEO Analysis</span>
+                    </label>
+                </div>
+
+                {/* Website URL (shown when SEO is enabled) */}
+                {analyzeWebsite && (
+                    <div className="mb-4 animate-[fadeIn_0.3s_ease-out]">
+                        <input
+                            type="url"
+                            value={websiteUrl}
+                            onChange={(e) => setWebsiteUrl(e.target.value)}
+                            placeholder="Enter website URL for SEO analysis (e.g., https://example.com)"
+                            className="w-full py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-gray-500 outline-none focus:border-emerald-500"
+                            disabled={isProcessing}
+                        />
+                    </div>
+                )}
 
                 {/* Advanced Options Toggle */}
                 <button
@@ -149,6 +306,28 @@ export default function GoalInput({ onSubmit, onResult }) {
                 </div>
             </div>
 
+            {/* Action Progress */}
+            {actionProgress.length > 0 && (
+                <div className="mt-4 space-y-2">
+                    {actionProgress.map((item, idx) => (
+                        <div 
+                            key={idx} 
+                            className={`flex items-center gap-2 text-xs p-2 rounded-lg ${
+                                item.status === 'done' ? 'bg-emerald-500/10 text-emerald-400' :
+                                item.status === 'failed' ? 'bg-red-500/10 text-red-400' :
+                                'bg-violet-500/10 text-violet-400'
+                            }`}
+                        >
+                            {item.status === 'running' && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {item.status === 'done' && <CheckCircle className="w-3 h-3" />}
+                            {item.status === 'failed' && <XCircle className="w-3 h-3" />}
+                            <span>{item.message}</span>
+                            <span className="ml-auto text-gray-500">{item.time}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Error Message */}
             {error && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-sm">
@@ -158,15 +337,15 @@ export default function GoalInput({ onSubmit, onResult }) {
             )}
 
             {/* Success Message */}
-            {result && !error && (
+            {result && !error && !isProcessing && (
                 <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 text-emerald-400 text-sm">
                     <CheckCircle size={18} />
-                    <span>Marketing content generated successfully! Check below for results.</span>
+                    <span>All actions completed! Check the results below.</span>
                 </div>
             )}
 
             {/* Processing Overlay */}
-            {isProcessing && (
+            {isProcessing && actionProgress.length === 0 && (
                 <div className="absolute inset-0 bg-[rgba(10,11,20,0.9)] flex items-center justify-center rounded-2xl">
                     <div className="text-center">
                         <div className="w-12 h-12 border-[3px] border-violet-500/20 border-t-violet-500 rounded-full mx-auto mb-4 animate-spin" />
