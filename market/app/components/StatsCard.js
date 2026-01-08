@@ -4,17 +4,24 @@ export default function StatsCard({ title, value, change, changeType, icon, grad
     const isPositive = changeType === 'positive';
 
     const gradientStyles = {
-        purple: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)',
-        teal: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%)',
-        green: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)',
-        orange: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%)',
+        purple: 'from-violet-500/15 to-violet-500/5',
+        teal: 'from-cyan-500/15 to-cyan-500/5',
+        green: 'from-emerald-500/15 to-emerald-500/5',
+        orange: 'from-amber-500/15 to-amber-500/5',
+    };
+
+    const iconBgColors = {
+        purple: 'bg-violet-500/20',
+        teal: 'bg-cyan-500/20',
+        green: 'bg-emerald-500/20',
+        orange: 'bg-amber-500/20',
     };
 
     const iconColors = {
-        purple: '#8b5cf6',
-        teal: '#06b6d4',
-        green: '#10b981',
-        orange: '#f59e0b',
+        purple: 'text-violet-500',
+        teal: 'text-cyan-500',
+        green: 'text-emerald-500',
+        orange: 'text-amber-500',
     };
 
     const iconMap = {
@@ -28,67 +35,26 @@ export default function StatsCard({ title, value, change, changeType, icon, grad
     };
 
     const IconComponent = iconMap[icon] || Users;
-    const color = iconColors[gradient] || iconColors.purple;
 
     return (
-        <div style={{ ...styles.card, background: gradientStyles[gradient] || gradientStyles.purple }}>
-            <div style={styles.header}>
-                <div style={{ ...styles.iconWrapper, background: `${color}20` }}>
-                    <IconComponent size={20} color={color} />
+        <div className={`bg-gradient-to-br ${gradientStyles[gradient] || gradientStyles.purple} border border-white/10 rounded-2xl p-4 sm:p-6 transition-all hover:border-violet-500/30 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)]`}>
+            <div className="flex justify-between items-start mb-3 sm:mb-4">
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${iconBgColors[gradient] || iconBgColors.purple} flex items-center justify-center ${iconColors[gradient] || iconColors.purple}`}>
+                    <IconComponent className="w-5 h-5" />
                 </div>
                 {change && (
-                    <div style={{
-                        ...styles.change,
-                        color: isPositive ? '#10b981' : '#ef4444',
-                        background: isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    }}>
+                    <div className={`py-1.5 px-2.5 rounded-lg text-xs font-semibold ${isPositive
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-red-500/10 text-red-500'
+                        }`}>
                         {isPositive ? '↑' : '↓'} {change}%
                     </div>
                 )}
             </div>
-            <div style={styles.value}>{value}</div>
-            <div style={styles.title}>{title}</div>
+            <div className="text-2xl sm:text-[32px] font-bold mb-1.5 bg-gradient-to-br from-white to-white/80 bg-clip-text text-transparent">
+                {value}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-400">{title}</div>
         </div>
     );
 }
-
-const styles = {
-    card: {
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        padding: '24px',
-        transition: 'all 0.3s ease',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '16px',
-    },
-    iconWrapper: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    change: {
-        padding: '6px 10px',
-        borderRadius: '8px',
-        fontSize: '12px',
-        fontWeight: '600',
-    },
-    value: {
-        fontSize: '32px',
-        fontWeight: '700',
-        marginBottom: '6px',
-        background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-    },
-    title: {
-        fontSize: '14px',
-        color: 'rgba(240, 240, 245, 0.6)',
-    },
-};

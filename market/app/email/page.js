@@ -1,14 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Calendar, Mail, MousePointer, MessageSquare } from 'lucide-react';
+import { Plus, Calendar, Loader2, Send, RefreshCw } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import { emailCampaigns } from '../data/mockData';
+import { generateEmail, sendEmail } from '../api';
 
 export default function EmailPage() {
     const [campaigns] = useState(emailCampaigns);
     const [selectedTab, setSelectedTab] = useState('All');
     const tabs = ['All', 'Active', 'Scheduled', 'Draft', 'Completed'];
+
+    // New state for AI generation
+    const [showGenerator, setShowGenerator] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [generatedEmail, setGeneratedEmail] = useState(null);
+    const [businessName, setBusinessName] = useState('');
+    const [productDescription, setProductDescription] = useState('');
+    const [targetAudience, setTargetAudience] = useState('');
+    const [recipientEmail, setRecipientEmail] = useState('');
+    const [sending, setSending] = useState(false);
+    const [sendResult, setSendResult] = useState(null);
 
     const filteredCampaigns = campaigns.filter(campaign => selectedTab === 'All' || campaign.status === selectedTab);
 
@@ -22,61 +34,234 @@ export default function EmailPage() {
     };
 
     const getStatusColor = (status) => {
-        const colors = { Active: '#10b981', Scheduled: '#8b5cf6', Draft: '#6b7280', Completed: '#06b6d4' };
-        return colors[status] || '#6b7280';
+        const colors = { Active: 'bg-emerald-500', Scheduled: 'bg-violet-500', Draft: 'bg-gray-500', Completed: 'bg-cyan-500' };
+        return colors[status] || 'bg-gray-500';
+    };
+
+    const getStatusTextColor = (status) => {
+        const colors = { Active: 'text-emerald-500', Scheduled: 'text-violet-500', Draft: 'text-gray-500', Completed: 'text-cyan-500' };
+        return colors[status] || 'text-gray-500';
+    };
+
+    const handleGenerate = async () => {
+        if (!businessName || !productDescription || !targetAudience) return;
+        
+        setGenerating(true);
+        setGeneratedEmail(null);
+        
+        try {
+            const result = await generateEmail({
+                businessName,
+                productDescription,
+                targetAudience
+            });
+            setGeneratedEmail(result.content);
+        } catch (error) {
+            alert('Error generating email: ' + error.message);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleSendEmail = async () => {
+        if (!recipientEmail || !generatedEmail) return;
+        
+        setSending(true);
+        setSendResult(null);
+        
+        try {
+            const result = await sendEmail({
+                businessName,
+                productDescription,
+                targetAudience,
+                recipientEmail
+            });
+            setSendResult(result);
+        } catch (error) {
+            setSendResult({ success: false, message: error.message });
+        } finally {
+            setSending(false);
+        }
     };
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div className="max-w-[1400px] mx-auto">
+            <header className="flex flex-wrap justify-between items-start gap-4 mb-6 sm:mb-8">
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 8px 0', background: 'linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Email Marketing</h1>
-                    <p style={{ fontSize: '15px', color: 'rgba(240,240,245,0.6)', margin: 0 }}>AI-powered email campaigns and automation</p>
+                    <h1 className="text-xl sm:text-2xl lg:text-[32px] font-bold m-0 mb-2 bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">
+                        Email Marketing
+                    </h1>
+                    <p className="text-sm sm:text-[15px] text-gray-400 m-0">
+                        AI-powered email campaigns and automation
+                    </p>
                 </div>
-                <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}><Plus size={16} /> Create Campaign</button>
+                <button 
+                    onClick={() => setShowGenerator(!showGenerator)}
+                    className="flex items-center gap-2 py-2.5 sm:py-3 px-4 sm:px-6 bg-gradient-to-br from-violet-500 to-cyan-500 border-none rounded-xl text-white text-sm font-semibold cursor-pointer hover:shadow-lg hover:shadow-violet-500/30 transition-all"
+                >
+                    <Plus className="w-4 h-4" /> {showGenerator ? 'Close' : 'Create Campaign'}
+                </button>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            {/* AI Email Generator */}
+            {showGenerator && (
+                <div className="bg-[rgba(20,22,35,0.8)] border border-violet-500/30 rounded-2xl p-4 sm:p-6 backdrop-blur-xl mb-6 animate-[fadeIn_0.3s_ease-out]">
+                    <h3 className="text-lg font-semibold text-white mb-4">🤖 AI Email Generator</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                        <input
+                            type="text"
+                            value={businessName}
+                            onChange={(e) => setBusinessName(e.target.value)}
+                            placeholder="Business name"
+                            className="py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-gray-500 outline-none focus:border-violet-500"
+                        />
+                        <input
+                            type="text"
+                            value={productDescription}
+                            onChange={(e) => setProductDescription(e.target.value)}
+                            placeholder="Product/Service description"
+                            className="py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-gray-500 outline-none focus:border-violet-500"
+                        />
+                        <input
+                            type="text"
+                            value={targetAudience}
+                            onChange={(e) => setTargetAudience(e.target.value)}
+                            placeholder="Target audience"
+                            className="py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-gray-500 outline-none focus:border-violet-500"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleGenerate}
+                        disabled={generating || !businessName || !productDescription || !targetAudience}
+                        className="flex items-center gap-2 py-2.5 px-5 bg-violet-500/20 border border-violet-500/40 rounded-xl text-violet-400 text-sm font-semibold cursor-pointer hover:bg-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                        {generating ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="w-4 h-4" /> Generate Email Content
+                            </>
+                        )}
+                    </button>
+
+                    {/* Generated Email Display */}
+                    {generatedEmail && (
+                        <div className="mt-4 p-4 bg-white/5 rounded-xl">
+                            <h4 className="text-sm font-semibold text-white mb-3">Generated Email:</h4>
+                            <div className="text-sm text-gray-300 whitespace-pre-wrap mb-4 max-h-[300px] overflow-y-auto">
+                                {generatedEmail}
+                            </div>
+
+                            {/* Send Email Section */}
+                            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                                <input
+                                    type="email"
+                                    value={recipientEmail}
+                                    onChange={(e) => setRecipientEmail(e.target.value)}
+                                    placeholder="Recipient email address"
+                                    className="flex-1 py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder:text-gray-500 outline-none focus:border-cyan-500"
+                                />
+                                <button
+                                    onClick={handleSendEmail}
+                                    disabled={sending || !recipientEmail}
+                                    className="flex items-center gap-2 py-2.5 px-5 bg-cyan-500/20 border border-cyan-500/40 rounded-lg text-cyan-400 text-sm font-semibold cursor-pointer hover:bg-cyan-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                >
+                                    {sending ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-4 h-4" /> Send Email
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Send Result */}
+                            {sendResult && (
+                                <div className={`mt-3 p-3 rounded-lg text-sm ${sendResult.success ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                    {sendResult.message}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6 sm:mb-8">
                 <StatsCard title="Emails Sent" value={stats.totalSent.toLocaleString()} icon="mail" gradient="purple" />
                 <StatsCard title="Avg Open Rate" value={`${stats.avgOpenRate}%`} icon="mail" gradient="teal" />
                 <StatsCard title="Avg Click Rate" value={`${stats.avgClickRate}%`} icon="trending" gradient="green" />
                 <StatsCard title="Total Replies" value={stats.totalReplies} icon="mail" gradient="orange" />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+            <div className="flex flex-wrap gap-2 mb-5 sm:mb-6">
                 {tabs.map((tab) => (
-                    <button key={tab} onClick={() => setSelectedTab(tab)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: selectedTab === tab ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${selectedTab === tab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', color: selectedTab === tab ? '#fff' : 'rgba(240,240,245,0.7)', fontSize: '14px', cursor: 'pointer' }}>
-                        {tab}{tab !== 'All' && <span style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', fontSize: '12px' }}>{campaigns.filter(c => c.status === tab).length}</span>}
+                    <button
+                        key={tab}
+                        onClick={() => setSelectedTab(tab)}
+                        className={`flex items-center gap-2 py-2 sm:py-2.5 px-3 sm:px-5 rounded-xl text-sm cursor-pointer transition-all ${selectedTab === tab
+                                ? 'bg-violet-500/20 border border-violet-500/40 text-white'
+                                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                            }`}
+                    >
+                        {tab}
+                        {tab !== 'All' && (
+                            <span className="py-0.5 px-2 bg-white/10 rounded-lg text-xs">
+                                {campaigns.filter(c => c.status === tab).length}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                 {filteredCampaigns.map((campaign) => (
-                    <div key={campaign.id} style={{ background: 'rgba(20,22,35,0.8)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: getStatusColor(campaign.status), boxShadow: `0 0 8px ${getStatusColor(campaign.status)}60` }} />
-                                <span style={{ color: getStatusColor(campaign.status) }}>{campaign.status}</span>
+                    <div key={campaign.id} className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2 text-[13px] font-semibold">
+                                <div className={`w-2 h-2 rounded-full ${getStatusColor(campaign.status)} shadow-lg`} />
+                                <span className={getStatusTextColor(campaign.status)}>{campaign.status}</span>
                             </div>
-                            <button style={{ background: 'transparent', border: 'none', color: 'rgba(240,240,245,0.5)', fontSize: '20px', cursor: 'pointer' }}>⋮</button>
+                            <button className="bg-transparent border-none text-gray-500 text-xl cursor-pointer hover:text-white">⋮</button>
                         </div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', color: '#fff' }}>{campaign.name}</h3>
-                        <p style={{ fontSize: '14px', color: 'rgba(240,240,245,0.6)', margin: '0 0 16px 0', lineHeight: 1.5 }}>{campaign.subject}</p>
+                        <h3 className="text-base sm:text-lg font-semibold text-white m-0 mb-2">{campaign.name}</h3>
+                        <p className="text-sm text-gray-400 m-0 mb-4 leading-relaxed">{campaign.subject}</p>
+
                         {campaign.scheduledDate && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(240,240,245,0.5)', marginBottom: '16px' }}>
-                                <Calendar size={14} /> <span>{campaign.scheduledDate}</span>
+                            <div className="flex items-center gap-2 text-[13px] text-gray-500 mb-4">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>{campaign.scheduledDate}</span>
                             </div>
                         )}
+
                         {campaign.sent > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginBottom: '16px' }}>
-                                <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{campaign.sent.toLocaleString()}</span><span style={{ fontSize: '11px', color: 'rgba(240,240,245,0.5)', textTransform: 'uppercase' }}>Sent</span></div>
-                                <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{Math.round(campaign.opened / campaign.sent * 100)}%</span><span style={{ fontSize: '11px', color: 'rgba(240,240,245,0.5)', textTransform: 'uppercase' }}>Opened</span></div>
-                                <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{Math.round(campaign.clicked / campaign.opened * 100)}%</span><span style={{ fontSize: '11px', color: 'rgba(240,240,245,0.5)', textTransform: 'uppercase' }}>Clicked</span></div>
-                                <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{campaign.replied}</span><span style={{ fontSize: '11px', color: 'rgba(240,240,245,0.5)', textTransform: 'uppercase' }}>Replied</span></div>
+                            <div className="grid grid-cols-4 gap-2 sm:gap-3 p-3 sm:p-4 bg-white/5 rounded-xl mb-4">
+                                <div className="text-center">
+                                    <span className="block text-base sm:text-lg font-bold text-white mb-1">{campaign.sent.toLocaleString()}</span>
+                                    <span className="text-[10px] sm:text-[11px] text-gray-500 uppercase">Sent</span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="block text-base sm:text-lg font-bold text-white mb-1">{Math.round(campaign.opened / campaign.sent * 100)}%</span>
+                                    <span className="text-[10px] sm:text-[11px] text-gray-500 uppercase">Opened</span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="block text-base sm:text-lg font-bold text-white mb-1">{Math.round(campaign.clicked / campaign.opened * 100)}%</span>
+                                    <span className="text-[10px] sm:text-[11px] text-gray-500 uppercase">Clicked</span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="block text-base sm:text-lg font-bold text-white mb-1">{campaign.replied}</span>
+                                    <span className="text-[10px] sm:text-[11px] text-gray-500 uppercase">Replied</span>
+                                </div>
                             </div>
                         )}
-                        <button style={{ width: '100%', padding: '10px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(240,240,245,0.8)', fontSize: '13px', cursor: 'pointer' }}>
+
+                        <button className="w-full py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 text-[13px] cursor-pointer hover:bg-white/10 transition-all">
                             {campaign.status === 'Draft' ? 'Edit Draft' : campaign.status === 'Scheduled' ? 'View Details' : 'View Report'}
                         </button>
                     </div>

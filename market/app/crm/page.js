@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Users, Calendar, Briefcase, Activity, Mail, Phone, FileText, Tag } from 'lucide-react';
+import { Plus, Calendar, Briefcase, Mail, Phone, FileText, Tag } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import { crmActivities, leadsData } from '../data/mockData';
 
@@ -20,52 +20,84 @@ export default function CRMPage() {
     };
 
     const typeIcons = { meeting: Calendar, deal: Briefcase, email: Mail, note: FileText, call: Phone, status: Tag };
-    const typeColors = { meeting: '#8b5cf6', deal: '#10b981', email: '#06b6d4', call: '#f59e0b', note: '#6366f1', status: '#ec4899' };
+    const typeColors = {
+        meeting: { bg: 'bg-violet-500/20', text: 'text-violet-500' },
+        deal: { bg: 'bg-emerald-500/20', text: 'text-emerald-500' },
+        email: { bg: 'bg-cyan-500/20', text: 'text-cyan-500' },
+        call: { bg: 'bg-amber-500/20', text: 'text-amber-500' },
+        note: { bg: 'bg-indigo-500/20', text: 'text-indigo-500' },
+        status: { bg: 'bg-pink-500/20', text: 'text-pink-500' }
+    };
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div className="max-w-[1400px] mx-auto">
+            <header className="flex flex-wrap justify-between items-start gap-4 mb-6 sm:mb-8">
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 8px 0', background: 'linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CRM Updates</h1>
-                    <p style={{ fontSize: '15px', color: 'rgba(240,240,245,0.6)', margin: 0 }}>Track AI-managed customer relationships and activities</p>
+                    <h1 className="text-xl sm:text-2xl lg:text-[32px] font-bold m-0 mb-2 bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">
+                        CRM Updates
+                    </h1>
+                    <p className="text-sm sm:text-[15px] text-gray-400 m-0">
+                        Track AI-managed customer relationships and activities
+                    </p>
                 </div>
-                <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}><Plus size={16} /> Add Activity</button>
+                <button className="flex items-center gap-2 py-2.5 sm:py-3 px-4 sm:px-6 bg-gradient-to-br from-violet-500 to-cyan-500 border-none rounded-xl text-white text-sm font-semibold cursor-pointer hover:shadow-lg hover:shadow-violet-500/30 transition-all">
+                    <Plus className="w-4 h-4" /> Add Activity
+                </button>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6 sm:mb-8">
                 <StatsCard title="Total Contacts" value={stats.totalContacts} icon="users" gradient="purple" />
                 <StatsCard title="Meetings" value={stats.meetings} icon="users" gradient="teal" />
                 <StatsCard title="Active Deals" value={stats.deals} icon="dollar" gradient="green" />
                 <StatsCard title="Activities" value={stats.activities} icon="trending" gradient="orange" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px' }}>
-                <div style={{ background: 'rgba(20,22,35,0.8)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: '#fff' }}>Activity Timeline</h3>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-4 lg:gap-6">
+                <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+                    <div className="flex flex-wrap justify-between items-center gap-4 mb-5">
+                        <h3 className="text-base sm:text-lg font-semibold text-white m-0">Activity Timeline</h3>
+                        <div className="flex flex-wrap gap-2">
                             {types.map((type) => (
-                                <button key={type} onClick={() => setSelectedType(type)} style={{ padding: '6px 12px', background: selectedType === type ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${selectedType === type ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '8px', color: selectedType === type ? '#fff' : 'rgba(240,240,245,0.6)', fontSize: '12px', cursor: 'pointer', textTransform: 'capitalize' }}>{type}</button>
+                                <button
+                                    key={type}
+                                    onClick={() => setSelectedType(type)}
+                                    className={`py-1.5 px-3 rounded-lg text-xs cursor-pointer transition-all capitalize ${selectedType === type
+                                            ? 'bg-violet-500/20 border border-violet-500/40 text-white'
+                                            : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                                        }`}
+                                >
+                                    {type}
+                                </button>
                             ))}
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="flex flex-col gap-4">
                         {filteredActivities.map((activity, index) => {
                             const IconComponent = typeIcons[activity.type] || FileText;
+                            const colors = typeColors[activity.type] || typeColors.note;
                             return (
-                                <div key={activity.id} style={{ display: 'flex', gap: '16px', position: 'relative', animation: 'fadeIn 0.5s ease-out forwards', animationDelay: `${index * 0.1}s` }}>
-                                    {index < filteredActivities.length - 1 && <div style={{ position: 'absolute', left: '19px', top: '40px', width: '2px', height: 'calc(100% + 16px)', background: 'rgba(255,255,255,0.08)' }} />}
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${typeColors[activity.type]}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 }}>
-                                        <IconComponent size={18} color={typeColors[activity.type]} />
+                                <div
+                                    key={activity.id}
+                                    className="flex gap-3 sm:gap-4 relative animate-[fadeIn_0.5s_ease-out_forwards]"
+                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                >
+                                    {index < filteredActivities.length - 1 && (
+                                        <div className="absolute left-[19px] top-10 w-0.5 h-[calc(100%+16px)] bg-white/10" />
+                                    )}
+                                    <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center flex-shrink-0 z-[1]`}>
+                                        <IconComponent className={`w-[18px] h-[18px] ${colors.text}`} />
                                     </div>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                            <div><span style={{ fontSize: '15px', fontWeight: '600', color: '#fff' }}>{activity.contact}</span><span style={{ fontSize: '13px', color: 'rgba(240,240,245,0.5)', marginLeft: '8px' }}>• {activity.company}</span></div>
-                                            <span style={{ fontSize: '12px', color: 'rgba(240,240,245,0.4)' }}>{formatTime(activity.timestamp)}</span>
+                                    <div className="flex-1 bg-white/5 rounded-xl p-3 sm:p-4">
+                                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                                            <div>
+                                                <span className="text-sm sm:text-[15px] font-semibold text-white">{activity.contact}</span>
+                                                <span className="text-xs sm:text-[13px] text-gray-500 ml-2">• {activity.company}</span>
+                                            </div>
+                                            <span className="text-xs text-gray-500">{formatTime(activity.timestamp)}</span>
                                         </div>
-                                        <div style={{ fontSize: '14px', color: typeColors[activity.type], marginBottom: '6px' }}>{activity.action}</div>
-                                        <p style={{ fontSize: '13px', color: 'rgba(240,240,245,0.7)', margin: 0 }}>{activity.description}</p>
+                                        <div className={`text-sm ${colors.text} mb-1.5`}>{activity.action}</div>
+                                        <p className="text-xs sm:text-[13px] text-gray-400 m-0">{activity.description}</p>
                                     </div>
                                 </div>
                             );
@@ -73,17 +105,24 @@ export default function CRMPage() {
                     </div>
                 </div>
 
-                <div style={{ background: 'rgba(20,22,35,0.8)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)', height: 'fit-content' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 20px 0', color: '#fff' }}>Recent Contacts</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl h-fit">
+                    <h3 className="text-sm sm:text-base font-semibold text-white m-0 mb-5">Recent Contacts</h3>
+                    <div className="flex flex-col gap-3">
                         {leadsData.slice(0, 5).map((lead) => (
-                            <div key={lead.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', cursor: 'pointer' }}>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '14px' }}>{lead.name.charAt(0)}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lead.name}</div>
-                                    <div style={{ fontSize: '12px', color: 'rgba(240,240,245,0.5)' }}>{lead.company}</div>
+                            <div key={lead.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center font-semibold text-sm text-white">
+                                    {lead.name.charAt(0)}
                                 </div>
-                                <div style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: lead.status === 'Hot' ? 'rgba(239,68,68,0.15)' : 'rgba(139,92,246,0.15)', color: lead.status === 'Hot' ? '#ef4444' : '#8b5cf6' }}>{lead.status}</div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-semibold text-white truncate">{lead.name}</div>
+                                    <div className="text-xs text-gray-500">{lead.company}</div>
+                                </div>
+                                <div className={`py-1 px-2 rounded-md text-[11px] font-semibold ${lead.status === 'Hot'
+                                        ? 'bg-red-500/15 text-red-500'
+                                        : 'bg-violet-500/15 text-violet-500'
+                                    }`}>
+                                    {lead.status}
+                                </div>
                             </div>
                         ))}
                     </div>

@@ -4,42 +4,42 @@ import { CheckCircle, Loader2, Circle } from 'lucide-react';
 
 export default function AgentStatus({ tasks }) {
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <div style={styles.headerLeft}>
-                    <div style={styles.pulsingDot} />
-                    <h3 style={styles.title}>AI Agent Activity</h3>
+        <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+            <div className="flex justify-between items-center mb-4 sm:mb-5">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
+                    <h3 className="text-sm sm:text-base font-semibold text-white m-0">AI Agent Activity</h3>
                 </div>
-                <span style={styles.badge}>Live</span>
+                <span className="py-1 px-2.5 bg-emerald-500/15 rounded-xl text-[11px] font-semibold text-emerald-500 uppercase tracking-wide">
+                    Live
+                </span>
             </div>
 
-            <div style={styles.taskList}>
+            <div className="flex flex-col gap-2.5 sm:gap-3">
                 {tasks.map((task, index) => (
                     <div
                         key={task.id}
-                        style={{
-                            ...styles.task,
-                            animationDelay: `${index * 0.1}s`,
-                        }}
+                        className="p-3 sm:p-3.5 bg-white/5 rounded-xl border border-white/5 animate-[fadeIn_0.5s_ease-out_forwards]"
+                        style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                        <div style={styles.taskHeader}>
+                        <div className="flex items-center gap-2.5 mb-2">
                             <StatusIcon status={task.status} />
-                            <span style={styles.taskName}>{task.task}</span>
+                            <span className="text-xs sm:text-sm text-gray-200 flex-1">{task.task}</span>
                         </div>
                         {task.status === 'in_progress' && (
-                            <div style={styles.progressWrapper}>
-                                <div style={styles.progressBar}>
+                            <div className="flex items-center gap-2.5 mb-2">
+                                <div className="flex-1 h-1 bg-white/10 rounded-sm overflow-hidden">
                                     <div
-                                        style={{
-                                            ...styles.progressFill,
-                                            width: `${task.progress}%`,
-                                        }}
+                                        className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-sm transition-all duration-500"
+                                        style={{ width: `${task.progress}%` }}
                                     />
                                 </div>
-                                <span style={styles.progressText}>{task.progress}%</span>
+                                <span className="text-xs text-violet-500 font-semibold min-w-[35px]">
+                                    {task.progress}%
+                                </span>
                             </div>
                         )}
-                        <span style={styles.timestamp}>{formatTime(task.timestamp)}</span>
+                        <span className="text-[11px] text-gray-500">{formatTime(task.timestamp)}</span>
                     </div>
                 ))}
             </div>
@@ -50,21 +50,21 @@ export default function AgentStatus({ tasks }) {
 function StatusIcon({ status }) {
     if (status === 'completed') {
         return (
-            <div style={{ ...styles.statusIcon, background: 'rgba(16, 185, 129, 0.2)' }}>
-                <CheckCircle size={12} color="#10b981" />
+            <div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle className="w-3 h-3 text-emerald-500" />
             </div>
         );
     }
     if (status === 'in_progress') {
         return (
-            <div style={{ ...styles.statusIcon, background: 'rgba(139, 92, 246, 0.2)' }}>
-                <Loader2 size={12} color="#8b5cf6" style={{ animation: 'spin 1s linear infinite' }} />
+            <div className="w-6 h-6 rounded-md bg-violet-500/20 flex items-center justify-center">
+                <Loader2 className="w-3 h-3 text-violet-500 animate-spin" />
             </div>
         );
     }
     return (
-        <div style={{ ...styles.statusIcon, background: 'rgba(255, 255, 255, 0.1)' }}>
-            <Circle size={12} color="rgba(255,255,255,0.5)" />
+        <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
+            <Circle className="w-3 h-3 text-gray-500" />
         </div>
     );
 }
@@ -73,108 +73,3 @@ function formatTime(timestamp) {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
-
-const styles = {
-    container: {
-        background: 'rgba(20, 22, 35, 0.8)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        padding: '24px',
-        backdropFilter: 'blur(12px)',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-    },
-    headerLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-    },
-    pulsingDot: {
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
-        background: '#10b981',
-        boxShadow: '0 0 12px rgba(16, 185, 129, 0.6)',
-        animation: 'pulse-glow 2s ease-in-out infinite',
-    },
-    title: {
-        fontSize: '16px',
-        fontWeight: '600',
-        margin: 0,
-        color: '#fff',
-    },
-    badge: {
-        padding: '4px 10px',
-        background: 'rgba(16, 185, 129, 0.15)',
-        borderRadius: '12px',
-        fontSize: '11px',
-        fontWeight: '600',
-        color: '#10b981',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-    },
-    taskList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-    },
-    task: {
-        padding: '14px 16px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: '12px',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        animation: 'fadeIn 0.5s ease-out forwards',
-    },
-    taskHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '8px',
-    },
-    statusIcon: {
-        width: '24px',
-        height: '24px',
-        borderRadius: '6px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    taskName: {
-        fontSize: '14px',
-        color: 'rgba(240, 240, 245, 0.9)',
-        flex: 1,
-    },
-    progressWrapper: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '8px',
-    },
-    progressBar: {
-        flex: 1,
-        height: '4px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '2px',
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        background: 'linear-gradient(90deg, #8b5cf6 0%, #06b6d4 100%)',
-        borderRadius: '2px',
-        transition: 'width 0.5s ease',
-    },
-    progressText: {
-        fontSize: '12px',
-        color: '#8b5cf6',
-        fontWeight: '600',
-        minWidth: '35px',
-    },
-    timestamp: {
-        fontSize: '11px',
-        color: 'rgba(240, 240, 245, 0.4)',
-    },
-};

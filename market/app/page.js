@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Target, Users, Mail, Share2, DollarSign, Calendar, Briefcase, Phone, FileText, Tag } from 'lucide-react';
+import { Target, Calendar, Briefcase, Mail, FileText, Phone, Tag, Share2, Hash, MessageSquare } from 'lucide-react';
 import GoalInput from './components/GoalInput';
 import StatsCard from './components/StatsCard';
 import AgentStatus from './components/AgentStatus';
@@ -9,9 +9,14 @@ import { dashboardStats, agentTasks, crmActivities } from './data/mockData';
 
 export default function Dashboard() {
   const [activeGoal, setActiveGoal] = useState(null);
+  const [generatedContent, setGeneratedContent] = useState(null);
 
   const handleGoalSubmit = (goal) => {
     setActiveGoal(goal);
+  };
+
+  const handleResult = (result) => {
+    setGeneratedContent(result);
   };
 
   const activityIcons = {
@@ -24,61 +29,145 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
+    <div className="max-w-[1400px] mx-auto">
+      <header className="flex flex-wrap justify-between items-start gap-3 mb-6">
         <div>
-          <h1 style={styles.title}>Dashboard</h1>
-          <p style={styles.subtitle}>Monitor your AI agent and marketing performance</p>
+          <h1 className="text-[clamp(22px,5vw,32px)] font-bold m-0 mb-2 bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-[clamp(13px,3vw,15px)] text-gray-400 m-0">
+            Monitor your AI agent and marketing performance
+          </p>
         </div>
-        <div style={styles.headerRight}>
-          <span style={styles.date}>{new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}</span>
+        <div className="text-right hidden sm:block">
+          <span className="text-[13px] text-gray-500">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </span>
         </div>
       </header>
 
-      <GoalInput onSubmit={handleGoalSubmit} />
+      <GoalInput onSubmit={handleGoalSubmit} onResult={handleResult} />
 
       {activeGoal && (
-        <div style={styles.activeGoal}>
-          <Target size={20} color="#8b5cf6" />
+        <div className="flex items-start gap-3 py-3.5 px-4 bg-violet-500/10 border border-violet-500/20 rounded-xl mt-4 mb-5 animate-[fadeIn_0.5s_ease-out_forwards]">
+          <Target className="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5" />
           <div>
-            <span style={styles.goalLabel}>Active Goal</span>
-            <p style={styles.goalText}>{activeGoal}</p>
+            <span className="text-[11px] text-violet-500 font-semibold uppercase tracking-wide">Active Goal</span>
+            <p className="m-0 mt-1 text-sm text-gray-200 break-words">{activeGoal}</p>
           </div>
         </div>
       )}
 
-      <div style={styles.statsGrid}>
+      {/* Generated Content Display */}
+      {generatedContent && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6 mb-6">
+          {/* SEO Content */}
+          <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 flex items-center justify-center bg-emerald-500/20 rounded-lg">
+                <Hash className="w-4 h-4 text-emerald-500" />
+              </div>
+              <h3 className="text-base font-semibold text-white m-0">SEO Keywords</h3>
+            </div>
+            <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+              {generatedContent.seo}
+            </div>
+          </div>
+
+          {/* Social Media Content */}
+          <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 flex items-center justify-center bg-violet-500/20 rounded-lg">
+                <Share2 className="w-4 h-4 text-violet-500" />
+              </div>
+              <h3 className="text-base font-semibold text-white m-0">Social Media Posts</h3>
+            </div>
+            <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+              {generatedContent.social_media}
+            </div>
+          </div>
+
+          {/* Email Content */}
+          <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 flex items-center justify-center bg-cyan-500/20 rounded-lg">
+                <Mail className="w-4 h-4 text-cyan-500" />
+              </div>
+              <h3 className="text-base font-semibold text-white m-0">Email Marketing</h3>
+            </div>
+            <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+              {generatedContent.email}
+            </div>
+          </div>
+
+          {/* WhatsApp Content */}
+          <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 flex items-center justify-center bg-green-500/20 rounded-lg">
+                <MessageSquare className="w-4 h-4 text-green-500" />
+              </div>
+              <h3 className="text-base font-semibold text-white m-0">WhatsApp Messages</h3>
+            </div>
+            <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+              {generatedContent.whatsapp}
+            </div>
+          </div>
+
+          {/* Strategic Plan (if available) */}
+          {generatedContent.plan && (
+            <div className="lg:col-span-2 bg-[rgba(20,22,35,0.8)] border border-violet-500/20 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 flex items-center justify-center bg-violet-500/20 rounded-lg">
+                  <Target className="w-4 h-4 text-violet-500" />
+                </div>
+                <h3 className="text-base font-semibold text-white m-0">Strategic Plan</h3>
+              </div>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[400px] overflow-y-auto">
+                {generatedContent.plan}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mt-6 sm:mt-8 mb-6 sm:mb-8">
         <StatsCard title="Total Leads" value={dashboardStats.totalLeads.toLocaleString()} change={dashboardStats.leadsGrowth} changeType="positive" icon="users" gradient="purple" />
         <StatsCard title="Emails Sent" value={dashboardStats.emailsSent.toLocaleString()} change={dashboardStats.emailGrowth} changeType="positive" icon="mail" gradient="teal" />
         <StatsCard title="Social Reach" value={`${(dashboardStats.socialReach / 1000).toFixed(1)}K`} change={dashboardStats.socialGrowth} changeType="positive" icon="share" gradient="green" />
         <StatsCard title="Pipeline Value" value={`$${(dashboardStats.pipelineValue / 1000).toFixed(0)}K`} change={dashboardStats.pipelineGrowth} changeType="positive" icon="dollar" gradient="orange" />
       </div>
 
-      <div style={styles.contentGrid}>
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-4 lg:mb-6">
         <AgentStatus tasks={agentTasks} />
 
-        <div style={styles.activityCard}>
-          <h3 style={styles.cardTitle}>Recent Activity</h3>
-          <div style={styles.activityList}>
+        <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+          <h3 className="text-sm sm:text-base font-semibold text-white m-0 mb-4 sm:mb-5">Recent Activity</h3>
+          <div className="flex flex-col gap-2.5 sm:gap-3">
             {crmActivities.slice(0, 5).map((activity, index) => {
               const IconComponent = activityIcons[activity.type] || FileText;
               return (
-                <div key={activity.id} style={{ ...styles.activityItem, animationDelay: `${index * 0.1}s` }}>
-                  <div style={styles.activityIcon}>
-                    <IconComponent size={16} color="rgba(240,240,245,0.7)" />
+                <div
+                  key={activity.id}
+                  className="flex gap-3 p-3 bg-white/5 rounded-xl animate-[fadeIn_0.5s_ease-out_forwards]"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="w-9 h-9 flex items-center justify-center bg-white/5 rounded-lg flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-gray-400" />
                   </div>
-                  <div style={styles.activityContent}>
-                    <div style={styles.activityHeader}>
-                      <span style={styles.activityName}>{activity.contact}</span>
-                      <span style={styles.activityTime}>{formatTime(activity.timestamp)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs sm:text-sm font-semibold text-white">{activity.contact}</span>
+                      <span className="text-[11px] text-gray-500">{formatTime(activity.timestamp)}</span>
                     </div>
-                    <p style={styles.activityAction}>{activity.action}</p>
-                    <p style={styles.activityDesc}>{activity.description}</p>
+                    <p className="text-xs sm:text-[13px] text-violet-500 m-0 mb-1">{activity.action}</p>
+                    <p className="text-[11px] sm:text-xs text-gray-400 m-0 truncate">{activity.description}</p>
                   </div>
                 </div>
               );
@@ -87,35 +176,56 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={styles.performanceCard}>
-        <h3 style={styles.cardTitle}>Performance Overview</h3>
-        <div style={styles.metricsGrid}>
-          <div style={styles.metricItem}>
-            <div style={styles.metricLabel}>Email Open Rate</div>
-            <div style={styles.metricValue}>{dashboardStats.emailOpenRate}%</div>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: `${dashboardStats.emailOpenRate}%` }} />
+      {/* Performance Card */}
+      <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+        <h3 className="text-sm sm:text-base font-semibold text-white m-0 mb-4 sm:mb-5">Performance Overview</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="p-3 sm:p-4 bg-white/5 rounded-xl">
+            <div className="text-xs sm:text-[13px] text-gray-400 mb-2">Email Open Rate</div>
+            <div className="text-xl sm:text-[28px] font-bold mb-3 bg-gradient-to-br from-white to-white/80 bg-clip-text text-transparent">
+              {dashboardStats.emailOpenRate}%
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-sm transition-all duration-500"
+                style={{ width: `${dashboardStats.emailOpenRate}%` }}
+              />
             </div>
           </div>
-          <div style={styles.metricItem}>
-            <div style={styles.metricLabel}>Social Engagement</div>
-            <div style={styles.metricValue}>{dashboardStats.socialEngagement}%</div>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: `${dashboardStats.socialEngagement * 10}%`, background: 'linear-gradient(90deg, #06b6d4 0%, #10b981 100%)' }} />
+          <div className="p-3 sm:p-4 bg-white/5 rounded-xl">
+            <div className="text-xs sm:text-[13px] text-gray-400 mb-2">Social Engagement</div>
+            <div className="text-xl sm:text-[28px] font-bold mb-3 bg-gradient-to-br from-white to-white/80 bg-clip-text text-transparent">
+              {dashboardStats.socialEngagement}%
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-sm transition-all duration-500"
+                style={{ width: `${dashboardStats.socialEngagement * 10}%` }}
+              />
             </div>
           </div>
-          <div style={styles.metricItem}>
-            <div style={styles.metricLabel}>Leads This Week</div>
-            <div style={styles.metricValue}>{dashboardStats.leadsThisWeek}</div>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: '89%', background: 'linear-gradient(90deg, #f59e0b 0%, #ef4444 100%)' }} />
+          <div className="p-3 sm:p-4 bg-white/5 rounded-xl">
+            <div className="text-xs sm:text-[13px] text-gray-400 mb-2">Leads This Week</div>
+            <div className="text-xl sm:text-[28px] font-bold mb-3 bg-gradient-to-br from-white to-white/80 bg-clip-text text-transparent">
+              {dashboardStats.leadsThisWeek}
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-red-500 rounded-sm transition-all duration-500"
+                style={{ width: '89%' }}
+              />
             </div>
           </div>
-          <div style={styles.metricItem}>
-            <div style={styles.metricLabel}>Deals in Progress</div>
-            <div style={styles.metricValue}>{dashboardStats.dealsInProgress}</div>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: '75%', background: 'linear-gradient(90deg, #10b981 0%, #06b6d4 100%)' }} />
+          <div className="p-3 sm:p-4 bg-white/5 rounded-xl">
+            <div className="text-xs sm:text-[13px] text-gray-400 mb-2">Deals in Progress</div>
+            <div className="text-xl sm:text-[28px] font-bold mb-3 bg-gradient-to-br from-white to-white/80 bg-clip-text text-transparent">
+              {dashboardStats.dealsInProgress}
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-sm transition-all duration-500"
+                style={{ width: '75%' }}
+              />
             </div>
           </div>
         </div>
@@ -133,35 +243,3 @@ function formatTime(timestamp) {
   if (hours < 24) return `${hours}h ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
-const styles = {
-  page: { maxWidth: '1400px', margin: '0 auto' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-  title: { fontSize: '32px', fontWeight: '700', margin: '0 0 8px 0', background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
-  subtitle: { fontSize: '15px', color: 'rgba(240, 240, 245, 0.6)', margin: 0 },
-  headerRight: { textAlign: 'right' },
-  date: { fontSize: '14px', color: 'rgba(240, 240, 245, 0.5)' },
-  activeGoal: { display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '12px', marginTop: '20px', marginBottom: '24px', animation: 'fadeIn 0.5s ease-out forwards' },
-  goalLabel: { fontSize: '12px', color: '#8b5cf6', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  goalText: { margin: '4px 0 0 0', fontSize: '15px', color: 'rgba(240, 240, 245, 0.9)' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '32px', marginBottom: '32px' },
-  contentGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '24px' },
-  activityCard: { background: 'rgba(20, 22, 35, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)' },
-  cardTitle: { fontSize: '16px', fontWeight: '600', margin: '0 0 20px 0', color: '#fff' },
-  activityList: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  activityItem: { display: 'flex', gap: '14px', padding: '14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', animation: 'fadeIn 0.5s ease-out forwards' },
-  activityIcon: { width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '10px' },
-  activityContent: { flex: 1, minWidth: 0 },
-  activityHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' },
-  activityName: { fontSize: '14px', fontWeight: '600', color: '#fff' },
-  activityTime: { fontSize: '11px', color: 'rgba(240, 240, 245, 0.4)' },
-  activityAction: { fontSize: '13px', color: '#8b5cf6', margin: '0 0 4px 0' },
-  activityDesc: { fontSize: '12px', color: 'rgba(240, 240, 245, 0.6)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  performanceCard: { background: 'rgba(20, 22, 35, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)' },
-  metricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' },
-  metricItem: { padding: '16px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px' },
-  metricLabel: { fontSize: '13px', color: 'rgba(240, 240, 245, 0.6)', marginBottom: '8px' },
-  metricValue: { fontSize: '28px', fontWeight: '700', marginBottom: '12px', background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
-  progressBar: { height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden' },
-  progressFill: { height: '100%', background: 'linear-gradient(90deg, #8b5cf6 0%, #06b6d4 100%)', borderRadius: '3px', transition: 'width 0.5s ease' },
-};

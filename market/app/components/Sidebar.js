@@ -1,64 +1,110 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const toggleSidebar = () => {
+        setIsOpen(!isOpen);
+    };
+
+    const closeSidebar = () => {
+        setIsOpen(false);
+    };
 
     const navItems = [
         { href: '/', label: 'Dashboard', icon: DashboardIcon },
         { href: '/leads', label: 'Leads', icon: LeadsIcon },
+        { href: '/seo', label: 'SEO', icon: SEOIcon },
         { href: '/email', label: 'Email', icon: EmailIcon },
         { href: '/social', label: 'Social', icon: SocialIcon },
+        { href: '/history', label: 'History', icon: HistoryIcon },
         { href: '/crm', label: 'CRM', icon: CRMIcon },
     ];
 
     return (
-        <aside style={styles.sidebar}>
-            <div style={styles.logo}>
-                <div style={styles.logoIcon}>
-                    <AIIcon />
+        <>
+            {/* Mobile Header */}
+            <div className="fixed top-0 left-0 right-0 h-[60px] bg-[rgba(20,22,35,0.98)] border-b border-white/10 px-4 items-center justify-between z-[101] backdrop-blur-xl hidden md:!hidden max-md:flex">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <AIIcon size={18} />
+                    </div>
+                    <span className="text-base font-bold bg-gradient-to-br from-violet-500 to-cyan-500 bg-clip-text text-transparent">
+                        GrowthAI
+                    </span>
                 </div>
-                <span style={styles.logoText}>GrowthAI</span>
+                <button
+                    className="flex items-center justify-center w-10 h-10 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all"
+                    onClick={toggleSidebar}
+                    aria-label="Toggle menu"
+                >
+                    <div className="w-[18px] h-3.5 flex flex-col justify-between">
+                        <span className={`block h-0.5 w-full bg-white rounded-sm transition-all duration-300 ${isOpen ? 'rotate-45 translate-x-1 translate-y-1' : ''}`} />
+                        <span className={`block h-0.5 w-full bg-white rounded-sm transition-all duration-300 ${isOpen ? 'opacity-0' : 'opacity-100'}`} />
+                        <span className={`block h-0.5 w-full bg-white rounded-sm transition-all duration-300 ${isOpen ? '-rotate-45 translate-x-1 -translate-y-1' : ''}`} />
+                    </div>
+                </button>
             </div>
 
-            <nav style={styles.nav}>
-                {navItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    const Icon = item.icon;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            style={{
-                                ...styles.navItem,
-                                ...(isActive ? styles.navItemActive : {}),
-                            }}
-                        >
-                            <Icon active={isActive} />
-                            <span>{item.label}</span>
-                            {isActive && <div style={styles.activeIndicator} />}
-                        </Link>
-                    );
-                })}
-            </nav>
+            {/* Overlay */}
+            <div
+                onClick={closeSidebar}
+                className={`fixed inset-0 bg-black/60 z-[99] transition-opacity duration-300 md:hidden ${mounted && isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            />
 
-            <div style={styles.agentStatus}>
-                <div style={styles.agentHeader}>
-                    <div style={styles.agentDot} />
-                    <span style={styles.agentLabel}>AI Agent Active</span>
+            {/* Sidebar */}
+            <aside className={`fixed left-0 top-0 w-[260px] h-screen bg-gradient-to-b from-[rgba(20,22,35,0.98)] to-[rgba(10,11,20,0.99)] border-r border-white/10 p-6 flex flex-col z-[100] backdrop-blur-xl transition-transform duration-300 max-md:-translate-x-full ${isOpen ? 'max-md:translate-x-0' : ''}`}>
+                <div className="flex items-center gap-3 px-3 mb-10">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <AIIcon />
+                    </div>
+                    <span className="text-xl font-bold bg-gradient-to-br from-violet-500 to-cyan-500 bg-clip-text text-transparent">
+                        GrowthAI
+                    </span>
                 </div>
-                <p style={styles.agentText}>Processing 3 tasks...</p>
-            </div>
-        </aside>
+
+                <nav className="flex flex-col gap-1 flex-1">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={closeSidebar}
+                                className={`flex items-center gap-3 py-3.5 px-4 rounded-xl text-[15px] font-medium transition-all relative ${isActive
+                                    ? 'bg-violet-500/10 text-white'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                <Icon active={isActive} />
+                                <span>{item.label}</span>
+                                {isActive && (
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-gradient-to-b from-violet-500 to-cyan-500 rounded-sm" />
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </aside>
+        </>
     );
 }
 
 // Icons
-function AIIcon() {
+function AIIcon({ size = 24 }) {
     return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <defs>
                 <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#8b5cf6" />
@@ -127,105 +173,23 @@ function CRMIcon({ active }) {
     );
 }
 
-const styles = {
-    sidebar: {
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        width: '260px',
-        height: '100vh',
-        background: 'linear-gradient(180deg, rgba(20, 22, 35, 0.95) 0%, rgba(10, 11, 20, 0.98) 100%)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 100,
-        backdropFilter: 'blur(12px)',
-    },
-    logo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '0 12px',
-        marginBottom: '40px',
-    },
-    logoIcon: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '12px',
-        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    logoText: {
-        fontSize: '20px',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-    },
-    nav: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        flex: 1,
-    },
-    navItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '14px 16px',
-        borderRadius: '12px',
-        color: 'rgba(240, 240, 245, 0.7)',
-        textDecoration: 'none',
-        fontSize: '15px',
-        fontWeight: '500',
-        transition: 'all 0.2s ease',
-        position: 'relative',
-    },
-    navItemActive: {
-        background: 'rgba(139, 92, 246, 0.1)',
-        color: '#fff',
-    },
-    activeIndicator: {
-        position: 'absolute',
-        right: '0',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        width: '3px',
-        height: '24px',
-        background: 'linear-gradient(180deg, #8b5cf6 0%, #06b6d4 100%)',
-        borderRadius: '2px',
-    },
-    agentStatus: {
-        padding: '16px',
-        background: 'rgba(16, 185, 129, 0.1)',
-        borderRadius: '12px',
-        border: '1px solid rgba(16, 185, 129, 0.2)',
-    },
-    agentHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '8px',
-    },
-    agentDot: {
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        background: '#10b981',
-        boxShadow: '0 0 12px rgba(16, 185, 129, 0.6)',
-        animation: 'pulse-glow 2s ease-in-out infinite',
-    },
-    agentLabel: {
-        fontSize: '13px',
-        fontWeight: '600',
-        color: '#10b981',
-    },
-    agentText: {
-        fontSize: '12px',
-        color: 'rgba(240, 240, 245, 0.6)',
-        margin: 0,
-    },
-};
+function SEOIcon({ active }) {
+    return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? '#8b5cf6' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+            <path d="M11 8v6" />
+            <path d="M8 11h6" />
+        </svg>
+    );
+}
+
+function HistoryIcon({ active }) {
+    return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? '#8b5cf6' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+        </svg>
+    );
+}
+

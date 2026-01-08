@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Users, Flame, CheckCircle, DollarSign } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import StatsCard from '../components/StatsCard';
 import { leadsData } from '../data/mockData';
@@ -26,52 +26,114 @@ export default function LeadsPage() {
         totalValue: leads.reduce((sum, l) => sum + l.value, 0),
     };
 
+    const getBadgeClasses = (status) => {
+        const classes = {
+            Hot: 'bg-red-500/15 text-red-500',
+            Warm: 'bg-amber-500/15 text-amber-500',
+            Cold: 'bg-indigo-500/15 text-indigo-500',
+            Qualified: 'bg-emerald-500/15 text-emerald-500',
+            Contacted: 'bg-cyan-500/15 text-cyan-500',
+        };
+        return classes[status] || classes.Cold;
+    };
+
     const columns = [
         {
             key: 'name', header: 'Contact', render: (value, row) => (
-                <div style={styles.contactCell}>
-                    <div style={styles.avatar}>{value.charAt(0)}</div>
-                    <div><div style={styles.contactName}>{value}</div><div style={styles.contactEmail}>{row.email}</div></div>
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center font-semibold text-sm text-white">
+                        {value.charAt(0)}
+                    </div>
+                    <div>
+                        <div className="font-semibold text-white">{value}</div>
+                        <div className="text-xs text-gray-500">{row.email}</div>
+                    </div>
                 </div>
             ),
         },
         { key: 'company', header: 'Company' },
-        { key: 'status', header: 'Status', render: (value) => (<span style={{ ...styles.badge, ...getBadgeStyle(value) }}>{value}</span>) },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (value) => (
+                <span className={`py-1.5 px-3 rounded-full text-xs font-semibold ${getBadgeClasses(value)}`}>
+                    {value}
+                </span>
+            )
+        },
         {
             key: 'score', header: 'Score', render: (value) => (
-                <div style={styles.scoreCell}><div style={styles.scoreBar}><div style={{ ...styles.scoreFill, width: `${value}%` }} /></div><span style={styles.scoreValue}>{value}</span></div>
+                <div className="flex items-center gap-2.5">
+                    <div className="w-[60px] h-1.5 bg-white/10 rounded-sm overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-violet-500 to-emerald-500 rounded-sm" style={{ width: `${value}%` }} />
+                    </div>
+                    <span className="text-[13px] font-semibold text-emerald-500">{value}</span>
+                </div>
             ),
         },
-        { key: 'source', header: 'Source', render: (value) => (<span style={styles.sourceTag}>{value}</span>) },
-        { key: 'value', header: 'Value', render: (value) => (<span style={styles.valueText}>${value.toLocaleString()}</span>) },
+        {
+            key: 'source',
+            header: 'Source',
+            render: (value) => (
+                <span className="py-1 px-2.5 bg-white/5 rounded-md text-xs text-gray-400">{value}</span>
+            )
+        },
+        {
+            key: 'value',
+            header: 'Value',
+            render: (value) => (
+                <span className="font-semibold text-emerald-500">${value.toLocaleString()}</span>
+            )
+        },
     ];
 
     return (
-        <div style={styles.page}>
-            <header style={styles.header}>
+        <div className="max-w-[1400px] mx-auto">
+            <header className="flex flex-wrap justify-between items-start gap-4 mb-6 sm:mb-8">
                 <div>
-                    <h1 style={styles.title}>Lead Generation</h1>
-                    <p style={styles.subtitle}>Manage and track your leads powered by AI</p>
+                    <h1 className="text-xl sm:text-2xl lg:text-[32px] font-bold m-0 mb-2 bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">
+                        Lead Generation
+                    </h1>
+                    <p className="text-sm sm:text-[15px] text-gray-400 m-0">
+                        Manage and track your leads powered by AI
+                    </p>
                 </div>
-                <button style={styles.addButton}><Plus size={16} /> Add Lead</button>
+                <button className="flex items-center gap-2 py-2.5 sm:py-3 px-4 sm:px-6 bg-gradient-to-br from-violet-500 to-cyan-500 border-none rounded-xl text-white text-sm font-semibold cursor-pointer hover:shadow-lg hover:shadow-violet-500/30 transition-all">
+                    <Plus className="w-4 h-4" /> Add Lead
+                </button>
             </header>
 
-            <div style={styles.statsGrid}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6 sm:mb-8">
                 <StatsCard title="Total Leads" value={stats.total} icon="users" gradient="purple" />
                 <StatsCard title="Hot Leads" value={stats.hot} icon="flame" gradient="orange" />
                 <StatsCard title="Qualified" value={stats.qualified} icon="check" gradient="green" />
                 <StatsCard title="Pipeline Value" value={`$${(stats.totalValue / 1000).toFixed(0)}K`} icon="dollar" gradient="teal" />
             </div>
 
-            <div style={styles.tableCard}>
-                <div style={styles.tableHeader}>
-                    <div style={styles.searchWrapper}>
-                        <Search size={18} color="rgba(240, 240, 245, 0.4)" />
-                        <input type="text" placeholder="Search leads..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
+            <div className="bg-[rgba(20,22,35,0.8)] border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+                <div className="flex flex-wrap justify-between items-center gap-4 mb-5">
+                    <div className="flex items-center gap-2.5 py-2.5 px-4 bg-white/5 rounded-xl border border-white/10">
+                        <Search className="w-[18px] h-[18px] text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Search leads..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="bg-transparent border-none outline-none text-white text-sm w-[120px] sm:w-[200px] placeholder:text-gray-500"
+                        />
                     </div>
-                    <div style={styles.filters}>
+                    <div className="flex flex-wrap gap-2">
                         {['All', 'Hot', 'Warm', 'Cold', 'Qualified'].map((status) => (
-                            <button key={status} onClick={() => setStatusFilter(status)} style={{ ...styles.filterButton, ...(statusFilter === status ? styles.filterActive : {}) }}>{status}</button>
+                            <button
+                                key={status}
+                                onClick={() => setStatusFilter(status)}
+                                className={`py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-[13px] cursor-pointer transition-all ${statusFilter === status
+                                        ? 'bg-violet-500/20 border border-violet-500/40 text-violet-400'
+                                        : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                                    }`}
+                            >
+                                {status}
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -80,41 +142,3 @@ export default function LeadsPage() {
         </div>
     );
 }
-
-function getBadgeStyle(status) {
-    const styles = {
-        Hot: { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' },
-        Warm: { background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' },
-        Cold: { background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' },
-        Qualified: { background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' },
-        Contacted: { background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4' },
-    };
-    return styles[status] || styles.Cold;
-}
-
-const styles = {
-    page: { maxWidth: '1400px', margin: '0 auto' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '32px', fontWeight: '700', margin: '0 0 8px 0', background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
-    subtitle: { fontSize: '15px', color: 'rgba(240, 240, 245, 0.6)', margin: 0 },
-    addButton: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
-    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' },
-    tableCard: { background: 'rgba(20, 22, 35, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px', backdropFilter: 'blur(12px)' },
-    tableHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' },
-    searchWrapper: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' },
-    searchInput: { background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '14px', width: '200px' },
-    filters: { display: 'flex', gap: '8px' },
-    filterButton: { padding: '8px 16px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', color: 'rgba(240, 240, 245, 0.7)', fontSize: '13px', cursor: 'pointer' },
-    filterActive: { background: 'rgba(139, 92, 246, 0.2)', borderColor: 'rgba(139, 92, 246, 0.4)', color: '#8b5cf6' },
-    contactCell: { display: 'flex', alignItems: 'center', gap: '12px' },
-    avatar: { width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '14px' },
-    contactName: { fontWeight: '600', marginBottom: '2px' },
-    contactEmail: { fontSize: '12px', color: 'rgba(240, 240, 245, 0.5)' },
-    badge: { padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
-    scoreCell: { display: 'flex', alignItems: 'center', gap: '10px' },
-    scoreBar: { width: '60px', height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden' },
-    scoreFill: { height: '100%', background: 'linear-gradient(90deg, #8b5cf6 0%, #10b981 100%)', borderRadius: '3px' },
-    scoreValue: { fontSize: '13px', fontWeight: '600', color: '#10b981' },
-    sourceTag: { padding: '4px 10px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '6px', fontSize: '12px', color: 'rgba(240, 240, 245, 0.7)' },
-    valueText: { fontWeight: '600', color: '#10b981' },
-};
