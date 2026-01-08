@@ -481,3 +481,237 @@ async def auto_schedule_post(post_id: str) -> Optional[datetime]:
     if success:
         return optimal_time
     return None
+
+
+# ============================================
+# Lead Management
+# ============================================
+
+async def save_lead(lead_data: Dict[str, Any]) -> str:
+    """
+    Save a single lead to the database.
+    
+    Returns the inserted document ID as a string.
+    """
+    db = get_database()
+    
+    document = {
+        **lead_data,
+        "created_at": datetime.utcnow()
+    }
+    
+    result = await db.leads.insert_one(document)
+    return str(result.inserted_id)
+
+
+async def save_leads_bulk(leads: List[Dict[str, Any]]) -> List[str]:
+    """
+    Save multiple leads to the database using bulk insert.
+    
+    Returns list of inserted document IDs.
+    """
+    db = get_database()
+    
+    documents = []
+    for lead in leads:
+        doc = {
+            **lead,
+            "created_at": datetime.utcnow()
+        }
+        documents.append(doc)
+    
+    result = await db.leads.insert_many(documents)
+    return [str(id) for id in result.inserted_ids]
+
+
+async def get_leads(
+    limit: int = 100,
+    status: Optional[str] = None,
+    source: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Retrieve leads from database with optional filtering.
+    
+    Args:
+        limit: Maximum number of leads to return
+        status: Filter by lead status
+        source: Filter by lead source
+    
+    Returns:
+        List of lead documents
+    """
+    db = get_database()
+    
+    query = {}
+    if status:
+        query["status"] = status
+    if source:
+        query["source"] = source
+    
+    cursor = db.leads.find(query).sort("created_at", -1).limit(limit)
+    
+    results = []
+    async for doc in cursor:
+        doc["id"] = str(doc["_id"])
+        del doc["_id"]
+        if doc.get("created_at"):
+            doc["created_at"] = doc["created_at"].isoformat()
+        results.append(doc)
+    
+    return results
+
+
+async def delete_all_leads() -> int:
+    """Delete all leads from the database. Returns count of deleted documents."""
+    db = get_database()
+    result = await db.leads.delete_many({})
+    return result.deleted_count
+
+
+# ============================================
+# Score-Based Email Campaign
+# ============================================
+
+def get_email_frequency_hours(score: int) -> int:
+    """
+    Determine email frequency based on lead score.
+    Higher scores = more frequent emails.
+    
+    Score Tiers:
+    - 90-100 (Hot): Every 2 hours
+    - 70-89 (Warm): Every 6 hours
+    - 50-69 (Medium): Every 12 hours
+    - 30-49 (Cool): Every 24 hours
+    - 0-29 (Cold): Every 48 hours
+    """
+    if score >= 90:
+        return 2  # Hot leads: every 2 hours
+    elif score >= 70:
+        return 6  # Warm leads: every 6 hours
+    elif score >= 50:
+        return 12  # Medium leads: every 12 hours
+    elif score >= 30:
+        return 24  # Cool leads: every 24 hours
+    else:
+        return 48  # Cold leads: every 48 hours
+
+
+async def save_email_history(
+    lead_id: str,
+    lead_email: str,
+    subject: str,
+    success: bool,
+    message: str = None
+) -> str:
+    """
+    Save email send history to track when emails were sent.
+    """
+    db = get_database()
+    
+    document = {
+        "lead_id": lead_id,
+        "lead_email": lead_email,
+        "subject": subject,
+        "success": success,
+        "message": message,
+        "sent_at": datetime.utcnow()
+    }
+    
+    result = await db.email_history.insert_one(document)
+    
+    # Also update the lead's last_emailed_at field
+    try:
+        await db.leads.update_one(
+            {"_id": ObjectId(lead_id)},
+            {"$set": {"last_emailed_at": datetime.utcnow()}}
+        )
+    except Exception:
+        pass
+    
+    return str(result.inserted_id)
+
+
+async def get_last_email_time(lead_id: str) -> Optional[datetime]:
+    """Get the last time an email was sent to this lead."""
+    db = get_database()
+    
+    try:
+        doc = await db.email_history.find_one(
+            {"lead_id": lead_id, "success": True},
+            sort=[("sent_at", -1)]
+        )
+        return doc.get("sent_at") if doc else None
+    except Exception:
+        return None
+
+
+async def get_leads_for_email_campaign() -> List[Dict[str, Any]]:
+    """
+    Get all leads that are eligible for email based on their score and last email time.
+    
+    Returns leads sorted by score (highest first) that haven't been emailed
+    within their score-based frequency window.
+    """
+    db = get_database()
+    now = datetime.utcnow()
+    
+    # Get all leads
+    cursor = db.leads.find({}).sort("score", -1)
+    
+    eligible_leads = []
+    async for lead in cursor:
+        lead_id = str(lead["_id"])
+        score = lead.get("score", 50)
+        email = lead.get("email")
+        
+        if not email:
+            continue
+        
+        # Get required frequency based on score
+        frequency_hours = get_email_frequency_hours(score)
+        
+        # Check last email time
+        last_emailed = lead.get("last_emailed_at")
+        
+        # If never emailed or enough time has passed, include this lead
+        if last_emailed is None:
+            eligible = True
+        else:
+            time_since_last = now - last_emailed
+            hours_since_last = time_since_last.total_seconds() / 3600
+            eligible = hours_since_last >= frequency_hours
+        
+        if eligible:
+            lead["id"] = lead_id
+            del lead["_id"]
+            lead["frequency_hours"] = frequency_hours
+            lead["priority"] = "hot" if score >= 90 else "warm" if score >= 70 else "medium" if score >= 50 else "cool" if score >= 30 else "cold"
+            if lead.get("last_emailed_at"):
+                lead["last_emailed_at"] = lead["last_emailed_at"].isoformat()
+            if lead.get("created_at"):
+                lead["created_at"] = lead["created_at"].isoformat()
+            eligible_leads.append(lead)
+    
+    return eligible_leads
+
+
+async def get_email_history(lead_id: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get email history, optionally filtered by lead ID."""
+    db = get_database()
+    
+    query = {}
+    if lead_id:
+        query["lead_id"] = lead_id
+    
+    cursor = db.email_history.find(query).sort("sent_at", -1).limit(limit)
+    
+    results = []
+    async for doc in cursor:
+        doc["id"] = str(doc["_id"])
+        del doc["_id"]
+        if doc.get("sent_at"):
+            doc["sent_at"] = doc["sent_at"].isoformat()
+        results.append(doc)
+    
+    return results
+

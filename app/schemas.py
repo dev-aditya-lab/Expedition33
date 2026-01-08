@@ -201,3 +201,91 @@ class BlogPostResponse(BaseModel):
     hashnode_result: Optional[Dict[str, Any]] = Field(None, description="Hashnode publishing result if requested")
 
 
+# ============================================
+# Lead Management Schemas
+# ============================================
+
+class LeadCreate(BaseModel):
+    """Schema for creating a single lead."""
+    name: str = Field(..., description="Contact name")
+    email: str = Field(..., description="Contact email")
+    company: str = Field(..., description="Company name")
+    status: str = Field(default="Cold", description="Lead status: Hot, Warm, Cold, Qualified, Contacted")
+    score: int = Field(default=50, description="Lead score 0-100")
+    source: str = Field(default="Website", description="Lead source")
+    lastContact: Optional[str] = Field(None, description="Last contact date (YYYY-MM-DD)")
+    value: int = Field(default=0, description="Potential deal value")
+
+
+class LeadResponse(BaseModel):
+    """Response model for a single lead."""
+    id: str
+    name: str
+    email: str
+    company: str
+    status: str
+    score: int
+    source: str
+    lastContact: Optional[str] = None
+    value: int
+    created_at: Optional[str] = None
+
+
+class LeadsImportRequest(BaseModel):
+    """Request model for bulk lead import."""
+    leads: list[LeadCreate] = Field(..., description="List of leads to import")
+
+
+class LeadsImportResponse(BaseModel):
+    """Response model for bulk lead import."""
+    success: bool
+    message: str
+    imported_count: int
+    leads: Optional[list[LeadResponse]] = None
+
+
+# ============================================
+# Score-Based Email Campaign Schemas
+# ============================================
+
+class EmailCampaignRequest(BaseModel):
+    """Request model for running a score-based email campaign."""
+    subject_template: str = Field(
+        default="Special Offer for {company}!",
+        description="Email subject template. Use {name}, {company}, {score} as placeholders."
+    )
+    body_template: str = Field(
+        default="Hi {name},\n\nWe have an exclusive offer for {company}!\n\nBest regards,\nMarketing Team",
+        description="Email body template. Use {name}, {email}, {company}, {score} as placeholders."
+    )
+    max_emails: int = Field(
+        default=50,
+        description="Maximum number of emails to send in this batch"
+    )
+    dry_run: bool = Field(
+        default=True,
+        description="If True, only preview which emails would be sent without actually sending"
+    )
+
+
+class EmailCampaignResult(BaseModel):
+    """Result of a single email send."""
+    lead_id: str
+    lead_email: str
+    lead_name: str
+    score: int
+    priority: str
+    success: bool
+    message: str
+
+
+class EmailCampaignResponse(BaseModel):
+    """Response model for email campaign."""
+    success: bool
+    message: str
+    total_eligible: int
+    emails_sent: int
+    emails_failed: int
+    dry_run: bool
+    results: list[EmailCampaignResult] = []
+

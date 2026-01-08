@@ -615,7 +615,526 @@ async def change_post_status(post_id: str, new_status: str):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+# ============================================
+# Lead Management Endpoints
+# ============================================
+
+from app.database import save_lead, save_leads_bulk, get_leads
+from app.schemas import LeadCreate, LeadResponse, LeadsImportRequest, LeadsImportResponse
+
+
+@app.post("/leads/import", response_model=LeadsImportResponse, tags=["Leads"])
+async def import_leads(request: LeadsImportRequest):
+    """
+    Import multiple leads from Excel/CSV data.
+    
+    Accepts a list of leads and saves them to MongoDB.
+    Returns the count of imported leads and their details.
+    """
+    try:
+        if not request.leads:
+            raise HTTPException(status_code=400, detail="No leads provided")
+        
+        # Convert Pydantic models to dicts
+        leads_data = [lead.model_dump() for lead in request.leads]
+        
+        # Bulk insert
+        inserted_ids = await save_leads_bulk(leads_data)
+        
+        # Fetch the inserted leads to return
+        all_leads = await get_leads(limit=len(inserted_ids))
+        
+        return LeadsImportResponse(
+            success=True,
+            message=f"Successfully imported {len(inserted_ids)} leads",
+            imported_count=len(inserted_ids),
+            leads=all_leads[:len(inserted_ids)]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing leads: {str(e)}")
+
+
+@app.get("/leads", tags=["Leads"])
+async def list_leads(
+    limit: int = 100,
+    status: Optional[str] = None,
+    source: Optional[str] = None
+):
+    """
+    Get all leads from the database.
+    
+    Args:
+        limit: Maximum number of leads to return (default 100)
+        status: Filter by status (Hot, Warm, Cold, Qualified, Contacted)
+        source: Filter by source (Website, LinkedIn, Referral, etc.)
+    """
+    try:
+        leads = await get_leads(limit=limit, status=status, source=source)
+        return {"leads": leads, "count": len(leads)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching leads: {str(e)}")
+
+
+@app.post("/leads", response_model=LeadResponse, tags=["Leads"])
+async def create_lead(lead: LeadCreate):
+    """
+    Create a single new lead.
+    """
+    try:
+        lead_data = lead.model_dump()
+        lead_id = await save_lead(lead_data)
+        
+        return LeadResponse(
+            id=lead_id,
+            **lead_data
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating lead: {str(e)}")
+
+
+# ============================================
+# Score-Based Email Campaign Endpoints
+# ============================================
+
+from app.database import get_leads_for_email_campaign, save_email_history, get_email_history, get_email_frequency_hours
+from app.schemas import EmailCampaignRequest, EmailCampaignResult, EmailCampaignResponse
+from app.integrations.email_sender import send_email
+
+
+@app.post("/leads/email-campaign", response_model=EmailCampaignResponse, tags=["Email Campaign"])
+async def run_email_campaign(request: EmailCampaignRequest):
+    """
+    Run a score-based email campaign.
+    
+    Sends emails to leads based on their score:
+    - Score 90-100 (Hot): Every 2 hours
+    - Score 70-89 (Warm): Every 6 hours
+    - Score 50-69 (Medium): Every 12 hours
+    - Score 30-49 (Cool): Every 24 hours
+    - Score 0-29 (Cold): Every 48 hours
+    
+    Higher score leads get emailed more frequently and are processed first.
+    
+    Args:
+        subject_template: Email subject with placeholders {name}, {company}, {score}
+        body_template: Email body with placeholders
+        max_emails: Maximum emails to send in this batch
+        dry_run: If True, preview only without sending
+    """
+    try:
+        # Get eligible leads sorted by score
+        eligible_leads = await get_leads_for_email_campaign()
+        
+        if not eligible_leads:
+            return EmailCampaignResponse(
+                success=True,
+                message="No leads are eligible for email at this time",
+                total_eligible=0,
+                emails_sent=0,
+                emails_failed=0,
+                dry_run=request.dry_run,
+                results=[]
+            )
+        
+        # Limit to max_emails
+        leads_to_email = eligible_leads[:request.max_emails]
+        
+        results = []
+        emails_sent = 0
+        emails_failed = 0
+        
+        for lead in leads_to_email:
+            lead_id = lead.get("id")
+            lead_email = lead.get("email")
+            lead_name = lead.get("name", "Valued Customer")
+            lead_company = lead.get("company", "")
+            lead_score = lead.get("score", 50)
+            priority = lead.get("priority", "medium")
+            
+            # Prepare email content using templates
+            subject = request.subject_template.format(
+                name=lead_name,
+                company=lead_company,
+                score=lead_score
+            )
+            body = request.body_template.format(
+                name=lead_name,
+                email=lead_email,
+                company=lead_company,
+                score=lead_score
+            )
+            
+            if request.dry_run:
+                # Preview mode - don't actually send
+                results.append(EmailCampaignResult(
+                    lead_id=lead_id,
+                    lead_email=lead_email,
+                    lead_name=lead_name,
+                    score=lead_score,
+                    priority=priority,
+                    success=True,
+                    message=f"[DRY RUN] Would send email with subject: {subject}"
+                ))
+                emails_sent += 1
+            else:
+                # Actually send the email
+                result = send_email(
+                    to=lead_email,
+                    subject=subject,
+                    body=body
+                )
+                
+                # Save to email history
+                await save_email_history(
+                    lead_id=lead_id,
+                    lead_email=lead_email,
+                    subject=subject,
+                    success=result["success"],
+                    message=result["message"]
+                )
+                
+                if result["success"]:
+                    emails_sent += 1
+                else:
+                    emails_failed += 1
+                
+                results.append(EmailCampaignResult(
+                    lead_id=lead_id,
+                    lead_email=lead_email,
+                    lead_name=lead_name,
+                    score=lead_score,
+                    priority=priority,
+                    success=result["success"],
+                    message=result["message"]
+                ))
+        
+        return EmailCampaignResponse(
+            success=True,
+            message=f"{'Dry run completed' if request.dry_run else 'Email campaign completed'}. {emails_sent} emails {'would be sent' if request.dry_run else 'sent'}, {emails_failed} failed.",
+            total_eligible=len(eligible_leads),
+            emails_sent=emails_sent,
+            emails_failed=emails_failed,
+            dry_run=request.dry_run,
+            results=results
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error running email campaign: {str(e)}")
+
+
+@app.get("/leads/email-eligible", tags=["Email Campaign"])
+async def get_eligible_leads():
+    """
+    Get all leads eligible for email based on score and last email time.
+    
+    Shows which leads would receive emails if a campaign is run now.
+    """
+    try:
+        leads = await get_leads_for_email_campaign()
+        return {
+            "eligible_leads": leads,
+            "count": len(leads),
+            "frequency_tiers": {
+                "hot (90-100)": "Every 2 hours",
+                "warm (70-89)": "Every 6 hours",
+                "medium (50-69)": "Every 12 hours",
+                "cool (30-49)": "Every 24 hours",
+                "cold (0-29)": "Every 48 hours"
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/leads/email-history", tags=["Email Campaign"])
+async def get_email_send_history(lead_id: Optional[str] = None, limit: int = 50):
+    """
+    Get email send history, optionally filtered by lead ID.
+    """
+    try:
+        history = await get_email_history(lead_id=lead_id, limit=limit)
+        return {"history": history, "count": len(history)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/leads/ai-email-campaign", tags=["Email Campaign"])
+async def run_ai_personalized_email_campaign(
+    max_emails: int = 10,
+    dry_run: bool = True,
+    business_context: str = "AI Marketing Automation Platform - helping businesses grow with intelligent marketing"
+):
+    """
+    Run an AI-powered personalized email campaign.
+    
+    Fetches leads from the database and uses AI to generate a unique,
+    personalized email for each lead based on their name, company, and score.
+    
+    Args:
+        max_emails: Maximum number of emails to send
+        dry_run: If True, preview emails without sending
+        business_context: Context about your business for AI personalization
+    """
+    from app.config import get_llm
+    
+    try:
+        # Get eligible leads
+        eligible_leads = await get_leads_for_email_campaign()
+        
+        if not eligible_leads:
+            return {
+                "success": True,
+                "message": "No leads eligible for email at this time",
+                "total_eligible": 0,
+                "emails_processed": 0,
+                "results": []
+            }
+        
+        leads_to_email = eligible_leads[:max_emails]
+        llm = get_llm()
+        
+        results = []
+        emails_sent = 0
+        emails_failed = 0
+        
+        for lead in leads_to_email:
+            lead_id = lead.get("id")
+            lead_email = lead.get("email")
+            lead_name = lead.get("name", "Valued Customer")
+            lead_company = lead.get("company", "")
+            lead_score = lead.get("score", 50)
+            priority = lead.get("priority", "medium")
+            
+            # Generate personalized email using AI
+            prompt = f"""Generate a personalized marketing email for this lead:
+
+Lead Name: {lead_name}
+Company: {lead_company}
+Lead Score: {lead_score}/100 ({"hot lead - very interested" if lead_score >= 80 else "warm lead" if lead_score >= 50 else "needs nurturing"})
+
+Business Context: {business_context}
+
+Requirements:
+1. Create a compelling subject line (under 50 characters)
+2. Write a personalized email body (150-200 words)
+3. Include a clear call-to-action
+4. Reference their company name naturally
+5. Be professional but friendly
+
+Format your response exactly as:
+SUBJECT: [your subject line]
+---
+[email body]"""
+
+            try:
+                response = llm.invoke(prompt)
+                email_content = response.content
+                
+                # Parse subject and body
+                if "SUBJECT:" in email_content and "---" in email_content:
+                    parts = email_content.split("---", 1)
+                    subject = parts[0].replace("SUBJECT:", "").strip()
+                    body = parts[1].strip()
+                else:
+                    subject = f"Exclusive Opportunity for {lead_company}"
+                    body = email_content
+                
+                if dry_run:
+                    results.append({
+                        "lead_id": lead_id,
+                        "lead_email": lead_email,
+                        "lead_name": lead_name,
+                        "company": lead_company,
+                        "score": lead_score,
+                        "priority": priority,
+                        "subject": subject,
+                        "body_preview": body[:300] + "..." if len(body) > 300 else body,
+                        "success": True,
+                        "message": "[DRY RUN] Email generated but not sent"
+                    })
+                    emails_sent += 1
+                else:
+                    # Actually send the email
+                    result = send_email(
+                        to=lead_email,
+                        subject=subject,
+                        body=body
+                    )
+                    
+                    # Save to history
+                    await save_email_history(
+                        lead_id=lead_id,
+                        lead_email=lead_email,
+                        subject=subject,
+                        success=result["success"],
+                        message=result["message"]
+                    )
+                    
+                    if result["success"]:
+                        emails_sent += 1
+                    else:
+                        emails_failed += 1
+                    
+                    results.append({
+                        "lead_id": lead_id,
+                        "lead_email": lead_email,
+                        "lead_name": lead_name,
+                        "company": lead_company,
+                        "score": lead_score,
+                        "priority": priority,
+                        "subject": subject,
+                        "success": result["success"],
+                        "message": result["message"]
+                    })
+                    
+            except Exception as e:
+                emails_failed += 1
+                results.append({
+                    "lead_id": lead_id,
+                    "lead_email": lead_email,
+                    "lead_name": lead_name,
+                    "company": lead_company,
+                    "score": lead_score,
+                    "priority": priority,
+                    "success": False,
+                    "message": f"Failed to generate email: {str(e)}"
+                })
+        
+        return {
+            "success": True,
+            "message": f"{'Dry run completed' if dry_run else 'Campaign completed'}. {emails_sent} emails {'generated' if dry_run else 'sent'}, {emails_failed} failed.",
+            "total_eligible": len(eligible_leads),
+            "emails_processed": len(results),
+            "emails_sent": emails_sent,
+            "emails_failed": emails_failed,
+            "dry_run": dry_run,
+            "results": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================
+# Dashboard Stats Endpoint
+# ============================================
+
+@app.get("/dashboard/stats", tags=["Dashboard"])
+async def get_dashboard_stats():
+    """
+    Get real-time dashboard statistics from the database.
+    
+    Returns lead counts, email stats, and pipeline value.
+    """
+    from app.database import get_database
+    
+    try:
+        db = get_database()
+        
+        # Get lead stats
+        total_leads = await db.leads.count_documents({})
+        hot_leads = await db.leads.count_documents({"status": "Hot"})
+        warm_leads = await db.leads.count_documents({"status": "Warm"})
+        qualified_leads = await db.leads.count_documents({"status": "Qualified"})
+        
+        # Get pipeline value
+        pipeline = [
+            {"$group": {"_id": None, "total_value": {"$sum": "$value"}}}
+        ]
+        value_result = await db.leads.aggregate(pipeline).to_list(1)
+        pipeline_value = value_result[0]["total_value"] if value_result else 0
+        
+        # Get email stats
+        total_emails = await db.email_history.count_documents({})
+        successful_emails = await db.email_history.count_documents({"success": True})
+        
+        # Get leads by status for chart
+        status_pipeline = [
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+        ]
+        status_counts = {}
+        async for doc in db.leads.aggregate(status_pipeline):
+            status_counts[doc["_id"]] = doc["count"]
+        
+        # Get leads by source
+        source_pipeline = [
+            {"$group": {"_id": "$source", "count": {"$sum": 1}}}
+        ]
+        source_counts = {}
+        async for doc in db.leads.aggregate(source_pipeline):
+            source_counts[doc["_id"]] = doc["count"]
+        
+        # Get recent leads (last 7 days simulation - actually recent by created_at)
+        from datetime import datetime, timedelta
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        leads_this_week = await db.leads.count_documents({"created_at": {"$gte": week_ago}})
+        
+        return {
+            "totalLeads": total_leads,
+            "hotLeads": hot_leads,
+            "warmLeads": warm_leads,
+            "qualifiedLeads": qualified_leads,
+            "leadsThisWeek": leads_this_week,
+            "pipelineValue": pipeline_value,
+            "emailsSent": total_emails,
+            "emailsSuccessful": successful_emails,
+            "emailOpenRate": 68.4,  # Placeholder - would need tracking
+            "socialReach": 45200,  # Placeholder - would need integration
+            "socialEngagement": 8.7,
+            "byStatus": status_counts,
+            "bySource": source_counts
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/dashboard/activities", tags=["Dashboard"])
+async def get_recent_activities():
+    """
+    Get recent CRM activities based on email history and lead updates.
+    """
+    try:
+        activities = []
+        
+        # Get recent email sends
+        email_history = await get_email_history(limit=10)
+        for email in email_history:
+            activities.append({
+                "id": email.get("id"),
+                "contact": email.get("lead_email", "Unknown"),
+                "company": "",
+                "action": "Email Sent" if email.get("success") else "Email Failed",
+                "description": email.get("subject", "Marketing email"),
+                "timestamp": email.get("sent_at", ""),
+                "type": "email"
+            })
+        
+        # Get recent leads
+        leads = await get_leads(limit=5)
+        for lead in leads:
+            activities.append({
+                "id": lead.get("id"),
+                "contact": lead.get("name", "Unknown"),
+                "company": lead.get("company", ""),
+                "action": "Lead Added",
+                "description": f"Score: {lead.get('score', 0)} - {lead.get('source', 'Unknown')}",
+                "timestamp": lead.get("created_at", ""),
+                "type": "status"
+            })
+        
+        # Sort by timestamp (most recent first)
+        activities.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        
+        return {"activities": activities[:10]}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 

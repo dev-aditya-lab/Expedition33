@@ -87,7 +87,7 @@ def email_marketing_tool(business_info: str) -> str:
     
     prompt = f"""You are an expert email marketing copywriter. Based on the following business information, generate:
 
-1. **Subject Line Options** (3 attention-grabbing subject lines)
+1. **Subject Line Options**
 2. **Email Body**
    - Professional marketing tone
    - Clear value proposition

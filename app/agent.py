@@ -158,7 +158,7 @@ Business Context: {business_context}
         generate_instagram_image: bool = False
     ) -> dict:
         """
-        Execute autonomous marketing actions: send email, WhatsApp, upload to Drive, post to Instagram.
+        Execute autonomous marketing actions: send email, WhatsApp, post to Instagram.
         
         Args:
             marketing_content: Generated marketing content dict

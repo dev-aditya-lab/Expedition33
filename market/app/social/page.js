@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { Plus, Eye, Heart, MessageCircle, Repeat2, Calendar, Loader2, Image, RefreshCw, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
-import { socialPosts } from '../data/mockData';
 import { generateSocial } from '../api';
 
 export default function SocialPage() {
-    const [posts] = useState(socialPosts);
+    // Social posts would come from database - currently empty until DB integration
+    const [posts, setPosts] = useState([]);
     const [selectedPlatform, setSelectedPlatform] = useState('All');
     const platforms = ['All', 'LinkedIn', 'Instagram'];
 
