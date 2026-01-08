@@ -20,6 +20,7 @@ export default function SocialPage() {
     const [productDescription, setProductDescription] = useState('');
     const [targetAudience, setTargetAudience] = useState('');
     const [generateImage, setGenerateImage] = useState(true);
+    const [manualSchedule, setManualSchedule] = useState(true);  // If false, auto-schedule
     
     // For preview extraction
     const [instagramCaption, setInstagramCaption] = useState('');
@@ -125,7 +126,8 @@ export default function SocialPage() {
                 productDescription,
                 targetAudience,
                 platform: 'instagram',
-                generateImage: generateImage
+                generateImage: generateImage,
+                manualSchedule: manualSchedule
             });
             setGeneratedContent(result.content);
             
@@ -204,6 +206,28 @@ export default function SocialPage() {
                             <Image className="w-4 h-4" /> Generate AI image (FREE with Pollinations.ai)
                         </span>
                     </label>
+
+                    {/* Manual Schedule Toggle */}
+                    <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={manualSchedule}
+                            onChange={(e) => setManualSchedule(e.target.checked)}
+                            className="w-4 h-4 rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500"
+                        />
+                        <span className="text-sm text-gray-300 flex items-center gap-2">
+                            <Calendar className="w-4 h-4" /> I'll schedule it manually
+                        </span>
+                    </label>
+                    
+                    {!manualSchedule && (
+                        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                            <p className="text-xs text-amber-400 flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                Post will be auto-scheduled at the optimal time (based on engagement data or 7am-10pm slots)
+                            </p>
+                        </div>
+                    )}
 
                     <button
                         onClick={handleGenerate}

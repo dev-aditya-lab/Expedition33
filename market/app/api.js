@@ -66,7 +66,8 @@ export async function generateSocial(data) {
             target_audience: data.targetAudience,
             platform: data.platform || 'instagram',
             generate_image: data.generateImage || false,
-            image_url: data.imageUrl || null
+            image_url: data.imageUrl || null,
+            manual_schedule: data.manualSchedule !== false  // Default to true
         })
     });
     
@@ -217,6 +218,70 @@ export async function getHistoryStats() {
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || 'Failed to fetch stats');
+    }
+    
+    return response.json();
+}
+
+/**
+ * Get social posts history
+ */
+export async function getSocialPosts(limit = 50, status = null, platform = null) {
+    let url = `${API_BASE}/social/posts?limit=${limit}`;
+    if (status) url += `&status=${status}`;
+    if (platform) url += `&platform=${platform}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to fetch social posts');
+    }
+    
+    return response.json();
+}
+
+/**
+ * Get scheduled posts
+ */
+export async function getScheduledPosts() {
+    const response = await fetch(`${API_BASE}/social/scheduled`);
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to fetch scheduled posts');
+    }
+    
+    return response.json();
+}
+
+/**
+ * Schedule a post
+ */
+export async function schedulePost(postId, scheduledFor) {
+    const response = await fetch(`${API_BASE}/social/posts/${postId}/schedule?scheduled_for=${scheduledFor}`, {
+        method: 'POST'
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to schedule post');
+    }
+    
+    return response.json();
+}
+
+/**
+ * Update post status
+ */
+export async function updatePostStatus(postId, newStatus) {
+    const response = await fetch(`${API_BASE}/social/posts/${postId}/status?new_status=${newStatus}`, {
+        method: 'POST'
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update post status');
     }
     
     return response.json();

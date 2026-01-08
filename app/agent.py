@@ -7,9 +7,10 @@ from app.config import get_llm
 from app.tools import get_marketing_tools
 from app.integrations.email_sender import send_email
 from app.integrations.whatsapp_sender import send_whatsapp
-from app.integrations.drive_uploader import upload_marketing_pack_to_drive
+
 from app.integrations.social_poster import post_to_instagram
-from app.integrations.cloudinary_uploader import generate_and_upload_image
+
+from app.integrations.hashnode_publisher import publish_to_hashnode
 
 
 class MarketingAgent:
@@ -106,26 +107,31 @@ Business Context: {business_context}
         print(f"📋 Context: {business_context}")
         
         # Step 1: Generate the strategic plan
-        print("\n📝 [Step 1/5] Creating Strategic Plan...")
+        print("\n📝 [Step 1/6] Creating Strategic Plan...")
         plan_result = self.tools[4].invoke(goal)  # goal_planning_tool
         print("✅ Strategic plan created!")
         
         # Step 2-5: Execute all tools with goal context
-        print("\n🔍 [Step 2/5] Generating SEO Keywords...")
+        print("\n🔍 [Step 2/6] Generating SEO Keywords...")
         seo_result = self.tools[0].invoke(goal_info)
         print("✅ SEO content generated!")
         
-        print("\n📱 [Step 3/5] Creating Social Media Posts...")
+        print("\n📱 [Step 3/6] Creating Social Media Posts...")
         social_result = self.tools[1].invoke(goal_info)
         print("✅ Social media posts created!")
         
-        print("\n📧 [Step 4/5] Writing Email Marketing Content...")
+        print("\n📧 [Step 4/6] Writing Email Marketing Content...")
         email_result = self.tools[2].invoke(goal_info)
         print("✅ Email content written!")
         
-        print("\n💬 [Step 5/5] Crafting WhatsApp Messages...")
+        print("\n💬 [Step 5/6] Crafting WhatsApp Messages...")
         whatsapp_result = self.tools[3].invoke(goal_info)
         print("✅ WhatsApp messages crafted!")
+        
+        # Step 6: Generate Blog Post
+        print("\n📝 [Step 6/6] Creating Blog Post...")
+        blog_result = self.tools[5].invoke(goal_info)  # blog_post_tool
+        print("✅ Blog post created!")
         
         print("\n" + "="*60)
         print("🎉 GOAL-BASED CAMPAIGN COMPLETE!")
@@ -136,7 +142,8 @@ Business Context: {business_context}
             "seo": seo_result,
             "social_media": social_result,
             "email": email_result,
-            "whatsapp": whatsapp_result
+            "whatsapp": whatsapp_result,
+            "blog_post": blog_result
         }
     
     def execute_autonomous_actions(
@@ -171,7 +178,8 @@ Business Context: {business_context}
             "whatsapp_result": None,
             "drive_result": None,
             "instagram_result": None,
-            "image_generation_result": None
+            "image_generation_result": None,
+            "hashnode_result": None
         }
         
         print("\n" + "="*60)
@@ -279,6 +287,35 @@ Business Context: {business_context}
                     "message": "No image URL available for Instagram posting"
                 }
                 print("   ❌ No image URL available for Instagram posting")
+        
+        # 5. Publish Blog Post to Hashnode
+        blog_content = marketing_content.get("blog_post", "")
+        if blog_content:
+            print(f"\n📝 Publishing blog post to Hashnode...")
+            
+            # Extract title from blog content (first heading)
+            blog_title = business_name + " - Marketing Insights"
+            lines = blog_content.split('\n')
+            for line in lines:
+                if line.startswith('# '):
+                    blog_title = line.replace('# ', '').strip()
+                    break
+            
+            hashnode_result = publish_to_hashnode(
+                title=blog_title,
+                content=blog_content,
+                tags=["marketing", "business", "ai"]
+            )
+            results["hashnode_result"] = hashnode_result
+            if hashnode_result.get("success"):
+                print(f"   ✅ Blog published! URL: {hashnode_result.get('post_url', 'N/A')}")
+            else:
+                print(f"   ❌ Failed to publish blog: {hashnode_result.get('error', 'Unknown error')}")
+        else:
+            results["hashnode_result"] = {
+                "success": False,
+                "message": "No blog content generated to publish"
+            }
         
         print("\n" + "="*60)
         print("🎉 AUTONOMOUS ACTIONS COMPLETE!")

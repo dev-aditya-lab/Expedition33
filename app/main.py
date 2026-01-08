@@ -271,7 +271,11 @@ async def generate_social(request: SocialPostRequest):
     Generate social media content for Instagram and LinkedIn.
     
     Optionally generates an AI image using Pollinations.ai (FREE).
+    Saves the post to database for history tracking.
+    If manual_schedule is False, auto-schedules at optimal time.
     """
+    from app.database import save_social_post, auto_schedule_post
+    
     try:
         business_info = f"{request.business_name}: {request.product_description} for {request.target_audience}"
         content = social_media_tool.invoke(business_info)
@@ -287,6 +291,31 @@ async def generate_social(request: SocialPostRequest):
             )
             if gen_result["success"]:
                 image_url = gen_result["public_url"]
+        
+        # Determine initial status
+        initial_status = "draft" if request.manual_schedule else "scheduled"
+        
+        # Save to MongoDB
+        post_id = None
+        scheduled_time = None
+        try:
+            post_id = await save_social_post(
+                business_name=request.business_name,
+                product_description=request.product_description,
+                target_audience=request.target_audience,
+                platform=request.platform,
+                content=content,
+                image_url=image_url,
+                status="draft"  # Save as draft first
+            )
+            
+            # Auto-schedule if user didn't select manual scheduling
+            if not request.manual_schedule and post_id:
+                scheduled_time = await auto_schedule_post(post_id)
+                
+        except Exception as e:
+            print(f"DB Error: {e}")
+            pass  # Don't fail if DB is not configured
         
         return SocialMediaResponse(content=content, image_url=image_url)
     except Exception as e:
@@ -306,6 +335,90 @@ async def generate_email(request: SimpleContentRequest):
         business_info = f"{request.business_name}: {request.product_description} for {request.target_audience}"
         content = email_marketing_tool.invoke(business_info)
         return ContentResponse(content=content, content_type="email")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from app.schemas import BlogPostRequest, BlogPostResponse
+from app.tools import blog_post_tool
+
+
+@app.post("/generate/blog", response_model=BlogPostResponse, tags=["Blog Generation"])
+async def generate_blog_post(request: BlogPostRequest):
+    """
+    Generate an SEO-optimized blog post and optionally publish to Medium.
+    
+    Creates a complete blog post with:
+    - Engaging title
+    - Structured sections (H2/H3)
+    - SEO keyword optimization
+    - Call-to-action
+    - Suggested tags
+    
+    If `publish_to_medium` is True, the post will be published directly to your Medium account.
+    """
+    try:
+        # Build topic info for the AI
+        topic_info = f"""
+Topic: {request.topic}
+Target Audience: {request.target_audience}
+Key Points: {request.key_points or 'Cover the main aspects of the topic'}
+"""
+        
+        # Generate the blog post
+        content = blog_post_tool.invoke(topic_info)
+        
+        # Extract title from content (first line with #)
+        lines = content.split('\n')
+        title = request.topic  # Default
+        for line in lines:
+            if line.startswith('# '):
+                title = line.replace('# ', '').strip()
+                break
+        
+        # Extract suggested tags from content or use provided
+        tags = request.tags or []
+        if not tags:
+            # Try to extract from content
+            for line in lines:
+                if 'tag' in line.lower() and ':' in line:
+                    tag_part = line.split(':')[-1]
+                    tags = [t.strip().replace('#', '') for t in tag_part.split(',')][:5]
+                    break
+        
+        medium_result = None
+        hashnode_result = None
+        
+        # Publish to Medium if requested
+        if request.publish_to_medium:
+            from app.integrations.medium_publisher import publish_to_medium
+            
+            medium_result = publish_to_medium(
+                title=title,
+                content=content,
+                tags=tags,
+                publish_status="draft" if request.as_draft else "public",
+                content_format="markdown"
+            )
+        
+        # Publish to Hashnode if requested
+        if request.publish_to_hashnode:
+            from app.integrations.hashnode_publisher import publish_to_hashnode
+            
+            hashnode_result = publish_to_hashnode(
+                title=title,
+                content=content,
+                tags=tags
+            )
+        
+        return BlogPostResponse(
+            title=title,
+            content=content,
+            tags=tags,
+            medium_result=medium_result,
+            hashnode_result=hashnode_result
+        )
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -425,6 +538,84 @@ async def get_history_stats():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
+# ============================================
+# Social Posts & Scheduling Endpoints
+# ============================================
+
+from app.database import get_social_posts, get_scheduled_posts, update_post_status, update_post_schedule
+from datetime import datetime as dt
+
+
+@app.get("/social/posts", tags=["Social Posts"])
+async def list_social_posts(
+    limit: int = 50,
+    status: Optional[str] = None,
+    platform: Optional[str] = None
+):
+    """
+    Get all social posts with optional filtering by status and platform.
+    """
+    try:
+        posts = await get_social_posts(limit=limit, status=status, platform=platform)
+        return {"posts": posts, "count": len(posts)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.get("/social/scheduled", tags=["Social Posts"])
+async def list_scheduled_posts():
+    """
+    Get all posts that are scheduled for future posting.
+    """
+    try:
+        posts = await get_scheduled_posts()
+        return {"scheduled_posts": posts, "count": len(posts)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.post("/social/posts/{post_id}/schedule", tags=["Social Posts"])
+async def schedule_post(post_id: str, scheduled_for: str):
+    """
+    Schedule a post for a specific date/time.
+    
+    Args:
+        scheduled_for: ISO format datetime string (e.g., "2024-01-15T10:00:00")
+    """
+    try:
+        scheduled_datetime = dt.fromisoformat(scheduled_for.replace('Z', '+00:00'))
+        success = await update_post_schedule(post_id, scheduled_datetime)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        return {"success": True, "post_id": post_id, "scheduled_for": scheduled_for}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid datetime format. Use ISO format.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/social/posts/{post_id}/status", tags=["Social Posts"])
+async def change_post_status(post_id: str, new_status: str):
+    """
+    Update a post's status (draft, scheduled, published).
+    """
+    if new_status not in ["draft", "scheduled", "published"]:
+        raise HTTPException(status_code=400, detail="Invalid status. Use: draft, scheduled, or published")
+    
+    try:
+        success = await update_post_status(post_id, new_status)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        return {"success": True, "post_id": post_id, "status": new_status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

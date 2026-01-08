@@ -118,20 +118,99 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Strategic Plan (if available) */}
-          {generatedContent.plan && (
-            <div className="lg:col-span-2 bg-[rgba(20,22,35,0.8)] border border-violet-500/20 rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 flex items-center justify-center bg-violet-500/20 rounded-lg">
-                  <Target className="w-4 h-4 text-violet-500" />
+          {/* Goal Plan - Concise Two-Column Layout */}
+          {generatedContent.plan && (() => {
+            // Extract action steps from plan
+            const extractTasks = (plan) => {
+              const stepMatch = plan.match(/step[s]?[-:\s]*by[-:\s]*step|action[s]?/i);
+              const lines = plan.split('\n');
+              const tasks = [];
+              let inActionSection = false;
+              
+              for (const line of lines) {
+                const lower = line.toLowerCase();
+                if (lower.includes('step') && (lower.includes('action') || lower.includes('-'))) {
+                  inActionSection = true;
+                }
+                if (inActionSection && line.match(/^[\s]*[-•*\d]/)) {
+                  const task = line.replace(/^[\s-•*\d.]+/, '').trim();
+                  if (task && task.length > 10) tasks.push(task);
+                }
+                if (inActionSection && (lower.includes('timeline') || lower.includes('channel') || lower.includes('outcome'))) {
+                  inActionSection = false;
+                }
+              }
+              return tasks.slice(0, 6); // Max 6 tasks
+            };
+            
+            // Extract summary (first paragraph)
+            const extractSummary = (plan) => {
+              const lines = plan.split('\n').filter(l => l.trim() && !l.startsWith('**') && !l.startsWith('#'));
+              return lines.slice(0, 3).join(' ').substring(0, 200) + '...';
+            };
+            
+            const tasks = extractTasks(generatedContent.plan);
+            const summary = extractSummary(generatedContent.plan);
+            
+            return (
+              <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Left: Plan Summary */}
+                <div className="bg-[rgba(20,22,35,0.8)] border border-violet-500/20 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 flex items-center justify-center bg-violet-500/20 rounded-lg">
+                      <Target className="w-4 h-4 text-violet-500" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white m-0">🎯 Plan Summary</h3>
+                  </div>
+                  <p className="text-sm text-gray-400 leading-relaxed mb-3">{summary}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="py-1 px-2 bg-violet-500/20 text-violet-400 text-xs rounded-lg">SEO</span>
+                    <span className="py-1 px-2 bg-cyan-500/20 text-cyan-400 text-xs rounded-lg">Social</span>
+                    <span className="py-1 px-2 bg-emerald-500/20 text-emerald-400 text-xs rounded-lg">Email</span>
+                  </div>
                 </div>
-                <h3 className="text-base font-semibold text-white m-0">Strategic Plan</h3>
+                
+                {/* Right: Action Tasks */}
+                <div className="bg-[rgba(20,22,35,0.8)] border border-amber-500/20 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 flex items-center justify-center bg-amber-500/20 rounded-lg">
+                      <Calendar className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white m-0">📋 Action Tasks</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {tasks.length > 0 ? tasks.map((task, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-amber-500/30 text-amber-300 text-xs font-bold rounded-full mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span className="text-gray-300 line-clamp-2">{task}</span>
+                      </li>
+                    )) : (
+                      <>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-amber-500/30 text-amber-300 text-xs font-bold rounded-full">1</span>
+                          <span className="text-gray-300">Generate SEO keywords</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-amber-500/30 text-amber-300 text-xs font-bold rounded-full">2</span>
+                          <span className="text-gray-300">Create social media posts</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-amber-500/30 text-amber-300 text-xs font-bold rounded-full">3</span>
+                          <span className="text-gray-300">Draft email campaign</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-amber-500/30 text-amber-300 text-xs font-bold rounded-full">4</span>
+                          <span className="text-gray-300">Prepare WhatsApp messages</span>
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </div>
               </div>
-              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[400px] overflow-y-auto">
-                {generatedContent.plan}
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

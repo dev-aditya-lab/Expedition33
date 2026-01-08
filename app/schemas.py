@@ -164,6 +164,7 @@ class SocialPostRequest(BaseModel):
     platform: str = Field(default="instagram", description="Platform: instagram or linkedin")
     generate_image: bool = Field(default=False, description="Auto-generate image for post")
     image_url: Optional[str] = Field(None, description="Custom image URL to use")
+    manual_schedule: bool = Field(default=True, description="If True, user schedules manually. If False, auto-schedule at optimal time.")
 
 
 class WebsiteAnalysisRequest(BaseModel):
@@ -178,3 +179,25 @@ class WebsiteAnalysisResponse(BaseModel):
     description: Optional[str] = None
     content_summary: Optional[str] = None
     seo_analysis: str = Field(..., description="AI-generated SEO analysis and recommendations")
+
+
+class BlogPostRequest(BaseModel):
+    """Request to generate and optionally publish a blog post."""
+    topic: str = Field(..., description="Main topic or title for the blog post")
+    target_audience: str = Field(..., description="Who the blog post is for")
+    key_points: Optional[str] = Field(None, description="Key points to cover")
+    publish_to_medium: bool = Field(default=False, description="If true, publish directly to Medium")
+    publish_to_hashnode: bool = Field(default=False, description="If true, publish directly to Hashnode")
+    as_draft: bool = Field(default=True, description="If publishing, save as draft (True) or publish immediately (False)")
+    tags: Optional[list] = Field(None, description="Tags for the blog post (max 5)")
+
+
+class BlogPostResponse(BaseModel):
+    """Response from blog post generation."""
+    title: str = Field(..., description="Generated blog post title")
+    content: str = Field(..., description="Full blog post in Markdown format")
+    tags: list = Field(default=[], description="Suggested tags")
+    medium_result: Optional[Dict[str, Any]] = Field(None, description="Medium publishing result if requested")
+    hashnode_result: Optional[Dict[str, Any]] = Field(None, description="Hashnode publishing result if requested")
+
+

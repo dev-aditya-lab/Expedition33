@@ -178,6 +178,46 @@ Be specific and actionable. Do not use special characters."""
     response = llm.invoke(prompt)
     return response.content
 
+@tool
+def blog_post_tool(topic_info: str) -> str:
+    """
+    Generates an SEO-optimized blog post in Markdown format.
+    Perfect for publishing to Medium, WordPress, or other blog platforms.
+    
+    Args:
+        topic_info: A description of the topic, target audience, and key points to cover.
+    
+    Returns:
+        A complete blog post in Markdown format with title, sections, and SEO optimization.
+    """
+    llm = get_llm()
+    
+    prompt = f"""You are an expert content writer and SEO specialist. Write a compelling blog post based on:
+
+{topic_info}
+
+Create a blog post with:
+
+1. **Engaging Title** - Hook the reader, include main keyword
+2. **Introduction** - 2-3 sentences that grab attention and preview the value
+3. **Main Sections** (3-5 sections with H2 headers):
+   - Each section should be 100-150 words
+   - Include relevant examples, tips, or data
+   - Use bullet points where appropriate
+4. **Conclusion** - Summarize key takeaways with a call-to-action
+5. **SEO Tags** - Suggest 5 relevant tags
+
+Format the entire response in clean Markdown. Make it:
+- Engaging and valuable for readers
+- SEO-friendly with natural keyword placement
+- Around 800-1200 words total
+- Easy to read with clear structure
+
+DO NOT include any meta commentary. Just output the blog post."""
+
+    response = llm.invoke(prompt)
+    return response.content
+
 
 # List of all available tools for the agent
 def get_marketing_tools():
@@ -187,5 +227,7 @@ def get_marketing_tools():
         social_media_tool,
         email_marketing_tool,
         whatsapp_marketing_tool,
-        goal_planning_tool
+        goal_planning_tool,
+        blog_post_tool
     ]
+
